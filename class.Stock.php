@@ -426,33 +426,35 @@ class Stock extends StockCache implements Iterator
 		return $this->setSubData(3);
 	}
 	
+	/* Iterator functions */
 	public function rewind() {
 // 		var_dump(__METHOD__);
 		reset($this->data);
 		$this->position = key($this->data);
 	}
-	
 	public function current() {
 // 		var_dump(__METHOD__);
 		return $this->data[$this->position][$this->subdata]; // get AdjustedClose data;
 	}
-	
 	public function key() {
 // 		var_dump(__METHOD__);
 		return $this->position;
 	}
-	
 	public function next() {
 // 		var_dump(__METHOD__);
 		next($this->data);
 		$this->position = key($this->data);
 	}
-	
 	public function valid() {
 // 		var_dump(__METHOD__);
 		return isset($this->data[$this->position]);
 	}
 
+	/* Analysis bridge */
+	public function Analysis($closeval = 'AdjustedClose')
+	{
+		return new StockAnalysis($this, $closeval);
+	}
 }
 
 class StockAnalysis
@@ -468,7 +470,7 @@ class StockAnalysis
 	public function __construct(Stock $stock, $closeVal = 'AdjustedClose')
 	{
 		if(!function_exists('trader_macd'))
-			throw new Exception('PECL\'s Trader package must be installed and activated in your PHP distribution.');
+			throw new Exception('PECL\'s Trader >=0.4.0 package must be installed and activated in your PHP distribution.');
 		$this->stock = $stock;
 		
 		// Caching Data
@@ -667,18 +669,21 @@ class StockAnalysis
 		
 	public function RSI($period = 14)
 	{
+		//TODO : interpreter
 		$RSI = trader_rsi(array_slice($this->cache, $period *-2), $period);
 		return $RSI;
 	}
 	
 	public function RegressionLineaire()
 	{
+		//TODO : it's for Testing only... see if it can obtain some useful infos
 		return trader_linearreg_angle(array_slice($this->cache, -150), 30);
 	}
 	
 	public function Bollinger($period = 20)
 	{
 		$BB = trader_bbands($this->cache, $period, 2.0, 2.0, TRADER_MA_TYPE_SMA);
+		//TODO : Interpreter
 		return $BB;
 	}
 	
@@ -721,6 +726,7 @@ class StockAnalysis
 // 				
 // 	}
 	
+	/* Stochastics  */
 	public $StochHigh = 80, $StochLow = 20;
 	public function StochasticLimit($low = 20, $high = 80)
 	{
@@ -728,7 +734,6 @@ class StockAnalysis
 		$this->StochLow = $low;
 		return $this;
 	}
-	
 	public function Stochastic($KPeriod = 14, $slowKPeriod = 3, $slowDPeriod=3)
 	{
 		if($KPeriod <1 || $slowKPeriod <1 || $slowDPeriod <1)
@@ -759,7 +764,6 @@ class StockAnalysis
 		//TODO : Divergences.
 		return 0; // signal neutre;
 	}
-	
 	public function LongStochastic()
 	{
 		return $this->Stochastic(39,1,1);

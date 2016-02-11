@@ -1,6 +1,6 @@
 <?php
-/*
-	CreditMutuel Bourse API
+/*	CreditMutuel Bourse API
+	
 	v0.1 alpha
 	Without any garantee.
 	
@@ -369,6 +369,8 @@ class Action extends CreditMutuel
 			'place' => 'TradingPlace',
 			'plusvalue' => 'GainLostValueInEur',
 			'pctplusvalue' => 'GainLostPrct',
+			'plusvaluepct' => 'GainLostPrct',
+			'plusvalue%' => 'GainLostPrct',
 			'qte' => 'Nominal',
 			'quantite' => 'Nominal',
 			'eligiblesrd' => 'FlagSRD',
@@ -702,7 +704,7 @@ class Ordre extends CreditMutuel
 		if(!isset(self::$modal[$m]))
 		{ // Rattrape les appels avec une chaine complete
 			foreach(self::$modal as $k => $v)
-				if(strtolower($v[0]) == strtolower($m))
+				if(strtolower(substr($v,0,2)) == strtolower(substr($m,0,2)))
 				{
 					$m = $k;
 					break;
@@ -773,6 +775,7 @@ class Ordre extends CreditMutuel
 		}
 		switch($v)
 		{
+			default:
 			case 1: // jour
 				if(strtotime(self::FERMETURE_BOURSE)-time() > 0) // Nous sommes en journée, valide jusqu'a ce soir.
 					return $this->Validite(4, time()+10);
@@ -795,6 +798,7 @@ class Ordre extends CreditMutuel
 			break;
 			case 3: // Maximale
 				return $this->Validite(4, strtotime('last Friday of '.self::VALIDITE_MAX));
+			break;
 			case 4:
 				if(is_null($date))
 					throw new Exception('Vous devez spécifier une date avec ce mode de validité');
