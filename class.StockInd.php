@@ -6,7 +6,7 @@
 
 class StockInd
 {
-	const STOCKS_FILE = 'libelles.csv'; /* Thanks to ABC Bourse.com */
+	const STOCKS_FILE = 'SBF120.ind'; /* Thanks to ABC Bourse.com */
 	const UNIFORM_REGEX = '/[^a-z0-9]/';
 	public $Lib = array(), $Mnem = array();
 	

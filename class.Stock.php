@@ -387,7 +387,7 @@ class Stock extends StockCache implements Iterator
 		$a = array('O', 'H', 'L', 'C', 'V', 'A');
 		if(is_int($d) && $d<count($a) && $d>0)
 			return $d;
-		elseif(is_string($d) && $c = array_search(strtoupper($d[0]), $a))
+		elseif(is_string($d) && ($c = array_search(strtoupper($d[0]), $a))!==false)
 			return $c;
 		else
 			throw new Exception('Unknown data type ['.$d.'].');
@@ -674,11 +674,23 @@ class StockAnalysis
 		return $RSI;
 	}
 	
-	public function RegressionLineaire()
+	public function RegressionLineaire($data)
 	{
 		//TODO : it's for Testing only... see if it can obtain some useful infos
-		return trader_linearreg_angle(array_slice($this->cache, -150), 30);
+// 		return trader_linearreg_angle(array_slice($this->cache, -150), 30);
+		return trader_midpoint($data, 25);
+// 		return trader_linearreg($data);
 	}
+	
+	public function Trendline()
+	{	
+		return trader_ht_trendline(array_slice($this->cache, -100));
+	}
+	
+	public function MOM()
+	{
+		return trader_mom(array_slice($this->cache, -30), 9);
+	}	
 	
 	public function Bollinger($period = 20)
 	{
@@ -769,4 +781,18 @@ class StockAnalysis
 		return $this->Stochastic(39,1,1);
 	}
 	
+	public function OBV()
+	{
+		$OBV = trader_obv(array_slice($this->cache, -30), array_slice($this->buildData('Volume'), -30));
+		return $OBV;
+	}
+	
+	public function Candle()
+	{
+		return trader_cdlharami(
+			array_slice($this->buildData('Open'), -30),
+			array_slice($this->buildData('High'), -30),
+			array_slice($this->buildData('Low'), -30),
+			array_slice($this->buildData('Close'), -30));
+	}
 }

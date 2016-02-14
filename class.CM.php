@@ -13,7 +13,6 @@
 	Note : please verify that the "date.timezone" parameter is fulfilled in your php.ini
 */
 
-
 class Webservice
 {
 	protected $Headers = array();
@@ -160,10 +159,15 @@ class CreditMutuel extends Webservice
 	
 	public $AccountDetails = null;
 	
+	private $user='', $pass='';
+	
 	public function __construct($user, $pass, $rib = null)
 	{
 		// Construct Webservice
 		parent::__construct();
+		
+		$this->user = $user;
+		$this->pass = $pass;
 		
 		$this->Identification($user, $pass);
 		
@@ -175,9 +179,25 @@ class CreditMutuel extends Webservice
 		$this->PostData['_media'] = 'AN';
 		$this->PostData['_wsversion'] = 7;
 		
+		self::registerCurrentInstance($this);
+		
 		return $this;
 	}
 
+	public static function registerCurrentInstance(CreditMutuel $instance)
+	{
+		$GLOBALS['CM_CURRENT_INSTANCE'] = $instance;
+		return true;
+	}
+	
+	public static function getCurrentInstance()
+	{
+		if(isset($GLOBALS['CM_CURRENT_INSTANCE']))
+			return $GLOBALS['CM_CURRENT_INSTANCE'];
+		else
+			throw new Exception('No Instance of CreditMutuel was found. Please Login before calling a function requiring the CM Webservice');
+	}
+	
 	public function RIB($r=null)
 	{
 		if(is_null($r))	return $this->RIB;
@@ -187,9 +207,23 @@ class CreditMutuel extends Webservice
 		return $this;
 	}
 	
-	protected function isISIN($i)
+	protected function isISIN(&$i)
 	{
-		return preg_match(self::ISIN_REGEX, $i);
+		if(preg_match(self::ISIN_REGEX, $i))
+			return true;
+		// Optionnal
+		if(!class_exists('StockInd'))
+			if(is_readable('class.StockInd.php'))
+				require_once('class.StockInd.php');
+			else
+				return false; // couldn't search for indice in DB
+		// Try to correct ISIN by reference, searching into DB by Stock label, or Mnemo.
+		if(($re = StockInd::getInstance()->search($i)) !== false)
+		{
+			$i = $re;
+			return true;
+		}
+		return false;
 	}
 	
 	/*
@@ -198,6 +232,9 @@ class CreditMutuel extends Webservice
 	*/
 	const URL_AUTH = '/IDE.html';
 	const IDSESS = 'IdSes';
+	const SAVE_SESSIONS = true; // Used for DEBUG mode, unsafe for production mode !!
+	const SESSION_PATH = 'CM_sess/';
+	const SESSION_TIMEOUT = 600; // 10 minutes
 	private function Identification($user, $pass)
 	{
 		// Cannot get IdSes with $http_response_headers, because of 1024 chars headers length of this internal variable.
@@ -208,30 +245,48 @@ class CreditMutuel extends Webservice
 // 			
 // 		return $this->AccountDetails = $this->call(self::URL . self::URL_AUTH, $auth);
 // 		
-		$ch = curl_init();
+		$headers = $body = '';
+		$session = self::SESSION_PATH . md5($user.':'.$pass) . '.sess.gz';
+		if(self::SAVE_SESSIONS && 
+			is_readable($session) && 
+			(filemtime($session)+self::SESSION_TIMEOUT) > time())
+			// Extracting old (10 minutes) session data.
+			extract(unserialize(gzinflate(file_get_contents($session))));
+		else
+		{
+			$ch = curl_init();
 
-		// set URL and other appropriate options
-		curl_setopt($ch, CURLOPT_URL, self::URL . self::URL_AUTH);
-		curl_setopt($ch, CURLOPT_POST, true);
-		curl_setopt($ch, CURLOPT_POSTFIELDS,
-			array(
-				'_cm_user' => $user,
-				'_cm_pwd' => $pass
-				)
-			);
-		curl_setopt($ch, CURLOPT_HEADER, true);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-// 		ob_start();
-		$response = curl_exec($ch);
-		$header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-		// close cURL resource, and free up system resources
-		curl_close($ch);
-		
+			// set URL and other appropriate options
+			curl_setopt($ch, CURLOPT_URL, self::URL . self::URL_AUTH);
+			curl_setopt($ch, CURLOPT_POST, true);
+			curl_setopt($ch, CURLOPT_POSTFIELDS,
+				array(
+					'_cm_user' => $user,
+					'_cm_pwd' => $pass
+					)
+				);
+			curl_setopt($ch, CURLOPT_HEADER, true);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	// 		ob_start();
+			$response = curl_exec($ch);
+			$header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+			// close cURL resource, and free up system resources
+			curl_close($ch);
+			
+			$headers = substr($response, 0, $header_size);
+			$body = substr($response, $header_size);
+			if(self::SAVE_SESSIONS)
+			{
+				if(!is_dir(self::SESSION_PATH))
+					mkdir(self::SESSION_PATH);
+				file_put_contents($session, gzdeflate(serialize(compact('headers', 'body'))));
+			}
+		}
 		// parse headers and get Cookie IdSes
-		$this->parseResponseHeaders(substr($response, 0, $header_size));
+		$this->parseResponseHeaders($headers);
 		
 		//return account details
-		return $this->AccountDetails = new SimpleXMLElement(substr($response, $header_size));
+		return $this->AccountDetails = new SimpleXMLElement($body);
 	}
 	
 	const URL_VALO = '/bourse/SecurityAccountOverview.aspx';
@@ -318,6 +373,10 @@ class CreditMutuel extends Webservice
 			->CancelOrder
 			->Result;
 	}
+	public function AnnulerOrdre($ref, $isin = null, $orderbook = 'BFR')
+	{
+		return $this->DeleteOrdre($ref,$isin,$orderboook);
+	}
 
 	public function Ordre($isin = null)
 	{
@@ -381,6 +440,7 @@ class Action extends CreditMutuel
 			'valorisationpct' => 'ValueInPrct',
 			'variationjour' => 'DayBeforeVariation',
 			'cours' => 'LastQuote',
+			'derniercours' => 'LastQuote',
 			'devise' => 'QuoteCurrency',
 			'vendable' => 'FlagSell',
 			'achetable' => 'FlagBuy',
@@ -411,6 +471,23 @@ class Action extends CreditMutuel
 	public function Vendre($qte = null, $cours = null)
 	{
 		return $this->Ordre->Vendre($qte, $cours);
+	}
+
+	public function __save()
+	{
+		return $this->V->asXML();
+	}
+	
+	public function __sleep()
+	{
+		$this->C = null;
+		$this->V = $this->V->asXML();
+		return array('C', 'V');
+	}
+	public function __wakeup()
+	{
+		$this->V = new SimpleXMLElement($this->V);
+		$this->C = parent::getCurrentInstance();
 	}
 }
 
@@ -527,6 +604,22 @@ class OrdreEnCours extends CreditMutuel
 	{
 		return $this->Delete();
 	}
+
+	public function __sleep()
+	{
+		$this->C = null;
+// 		$isin = $this->Action->isin;
+		$this->Action = $this->isin;
+		$this->O = $this->O->asXML();
+		return array('O', 'C', 'Action');
+	}
+	public function __wakeup()
+	{
+// 		print_r($this);
+		$this->O = new SimpleXMLElement($this->O);
+		$this->C = parent::getCurrentInstance();
+		$this->Action = new Action($this->C, $this->Action);
+	}
 }
 
 class Ordre extends CreditMutuel
@@ -537,9 +630,9 @@ class Ordre extends CreditMutuel
 	const PLACE_EURONEXT = '025';
 	const PLACE_DAX = '044';
 	
-// 	const URL_ORDRE = '/banque/ORD_ValeurSaisie.aspx';
+// 	const URL_ORDRE = '/demonstration/bourse/PlaceOrderValidConf.aspx';
 	const URL_ORDRE = '/bourse/PlaceOrderValidConf.aspx';
-// 	const URL_VALIDATION = '/banque/ORD_ValeurValidation.aspx';
+
 	private $CM = null;
 	private $OrdreData = array(
         "SecurityAccount" => '',
@@ -626,6 +719,7 @@ class Ordre extends CreditMutuel
 // 		print_r($this->OrdreData);
 		return OrdreEnCours::NewOrder(
 			$this->CM, 
+// 			new OrdreEnCours($this->CM, new SimpleXMLElement('<root><OrderPlacement IsinCode="'.$this->OrdreData['IsinCode'].'"></OrderPlacement></root>'))
 			$this->CM->call($url, $this->OrdreData)
 				->PlaceOrderValidConf
 				->OrderPlacement
@@ -834,6 +928,20 @@ class Ordre extends CreditMutuel
 	public function Maximale()
 	{
 		return $this->Validite(3);
+	}
+	public function Hebdo($h=0)
+	{
+		return $this->Hebdomadaire($h);
+	}
+	public function Hebdomadaire($h=0)
+	{
+		if((int)$h>1)
+			return $this->Validite(4, strtotime("last Friday of +$h weeks"));
+		return $this->Validite(5);
+	}
+	public function BiHebdomadaire()
+	{
+		return $this->Hebdomadaire(2);
 	}
 
 	public function Reglement($m = 'I')
