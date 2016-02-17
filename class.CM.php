@@ -159,15 +159,26 @@ class CreditMutuel extends Webservice
 	
 	public $AccountDetails = null;
 	
-	private $user='', $pass='';
+// 	private $user='', $pass='';
 	
-	public function __construct($user, $pass, $rib = null)
+	public function __construct($user, $pass = null, $rib = null)
 	{
 		// Construct Webservice
 		parent::__construct();
 		
-		$this->user = $user;
-		$this->pass = $pass;
+// 		$this->user = $user;
+// 		$this->pass = $pass;
+		if($user instanceof EncryptedCredentials)
+		{
+			$encrypted = $user->get($this); // Pass credit mutuel, for security reasons...
+			$user = $encrypted[0];
+			$pass = $encrypted[1];
+		}
+		else
+		{
+			if(!is_string($user) || is_null($pass))
+				throw new Exception('You must pass credentials to CreditMutuel constructor');
+		}
 		
 		$this->Identification($user, $pass);
 		
@@ -207,7 +218,7 @@ class CreditMutuel extends Webservice
 		return $this;
 	}
 	
-	protected function isISIN(&$i)
+	public function isISIN(&$i)
 	{
 		if(preg_match(self::ISIN_REGEX, $i))
 			return true;
@@ -653,10 +664,10 @@ class Ordre extends CreditMutuel
 	
 	public static	$modal = array( // ID => array('Label', Limit ?, StopLimit ?)
 			1 => array('A cours limite', true, false),
-			2 => array('Au marché', false, false),
-			3 => array('A la meilleure limite', false, false),
-			4 => array('A seuil de déclenchement', false, true),
-			5 => array('A plage de déclenchement', true, true),
+			4 => array('Au marché', false, false),
+			5 => array('A la meilleure limite', false, false),
+			2 => array('A seuil de déclenchement', false, true),
+			3 => array('A plage de déclenchement', true, true),
 			6 => array('Au dernier cours', false, false),
 		);
 		
@@ -681,6 +692,7 @@ class Ordre extends CreditMutuel
 	
 	public function __set($n, $v)
 	{
+		print $n.' => '.$v;
 		if(array_key_exists($n, $this->OrdreData) || $n == 'Limit' || $n == 'StopLimit')
 			$this->OrdreData[$n] = $v;
 		else
@@ -715,8 +727,7 @@ class Ordre extends CreditMutuel
 		foreach(self::$requiredFields as $r)
 			if($this->$r == '' || is_null($this->$r))
 				throw new Exception('Le paramètre ['.$r.'] est requis et ne semble pas avoir été précisé.');
-		
-// 		print_r($this->OrdreData);
+
 		return OrdreEnCours::NewOrder(
 			$this->CM, 
 // 			new OrdreEnCours($this->CM, new SimpleXMLElement('<root><OrderPlacement IsinCode="'.$this->OrdreData['IsinCode'].'"></OrderPlacement></root>'))
@@ -807,11 +818,20 @@ class Ordre extends CreditMutuel
 		if(!isset(self::$modal[$m]))
 			throw new Exception('Cette modalité ['.$m.'] est inconnue.');
 		
-		if(self::$modal[$m][1]) // Limite
-			$this->Limit = $lim;
+		if(self::$modal[$m][1]) // Limit 
+			if(is_null($lim))
+				throw new Exception('A Limit should be passed.');
+			else
+				$this->Limit = (float)$lim;
 		if(self::$modal[$m][2]) // Seuil
-			$this->StopLimit = $seuil;
-
+			if(is_null($lim))
+				if(is_null($seuil))
+					throw new Exception('Un seuil doit être spécifié.');
+				else
+					$this->StopLimit =(float)$seuil;
+			else
+				$this->StopLimit = (float)$lim;
+		
 		$this->Modality = $m;
 		return $this;
 	}
@@ -825,19 +845,19 @@ class Ordre extends CreditMutuel
 	}
 	public function AuMarche()
 	{
-		return $this->Modalite(2);
+		return $this->Modalite(4);
 	}
 	public function ASeuil($seuil)
 	{
-		return $this->Modalite(4, $seuil);
+		return $this->Modalite(2, $seuil);
 	}
 	public function ALaMeilleureLimite()
 	{
-		return $this->Modalite(3);
+		return $this->Modalite(5);
 	}
 	public function APlage($seuil, $lim)
 	{
-		return $this->Modalite(5, $lim, $seuil);
+		return $this->Modalite(3, $lim, $seuil);
 	}
 	public function AuDernierCours()
 	{
@@ -962,5 +982,93 @@ class Ordre extends CreditMutuel
 	{
 		return $this->Reglement('M');
 	}
+}
+
+class EncryptedCredentials extends CreditMutuel {
+
+    private $skey = "CreditMutuelCredentialsEncryption"; // you can change it
+	const CREDENTIALS_DIR = 'CM_sess/';
+	private $file = '';
+	
+    public function __construct($file = null)
+    {
+		if(!function_exists('mcrypt_create_iv'))
+			throw new Exception('mcrypt extension must be enabled in php');
+		if(substr($file, -3) != 'ids')
+			$file .= '.ids';
+		if(!is_null($file) && is_readable(self::CREDENTIALS_DIR.$file))
+			$this->constructKey(filemtime(self::CREDENTIALS_DIR.$file));
+// 		else
+// 			throw new Exception('Unknown encrypted credentials...');
+		$this->file = self::CREDENTIALS_DIR.$file;
+		return $this;
+    }
+    
+    private function constructKey($time, $createfile = false)
+    {
+// 		print ($time);
+		$time = ceil($time/10);
+		$this->skey = substr($this->skey, 0, 32-strlen($time)).$time;
+// 		print "\n".$this->skey;
+// 		print "\nstrlen = ".strlen($this->skey);
+		return $this;
+    }
+    
+    // return user:pass
+    final protected function get(CreditMutuel $C)
+    {
+		return explode(':', $this->decode(file_get_contents($this->file)));
+    }
+    
+    public static function create($user, $pass)
+    {
+		if(!is_dir(self::CREDENTIALS_DIR))
+			if(!mkdir(self::CREDENTIALS_DIR))
+				throw new Exception('Cannot create Credentials directory.');
+		$string = $user.':'.$pass;
+		$file = uniqid();
+		$cred = new self(__FILE__);
+		if(file_put_contents(self::CREDENTIALS_DIR.$file.'.ids', $cred->constructKey(time())->encode($string), LOCK_EX))
+			print "ENCRYPTED CREDENTIALS CREATED. PLEASE NOW CALL CreditMutuel() with \n  new EncryptedCredentials('$file')   as argument.";
+		else
+			print "An error occured.";
+		@chmod(self::CREDENTIALS_DIR.$file, 0400);
+		return $file;
+    }
+    
+    private function safe_b64encode($string) 
+    {
+        $data = base64_encode($string);
+        $data = str_replace(array('+','/','='),array('-','_',''),$data);
+        return $data;
+    }
+    private function safe_b64decode($string) 
+    {
+        $data = str_replace(array('-','_'),array('+','/'),$string);
+        $mod4 = strlen($data) % 4;
+        if ($mod4) 
+        {
+            $data .= substr('====', $mod4);
+        }
+        return base64_decode($data);
+    }
+    private function encode($value)
+    { 
+        if(!$value)	return false;
+        $text = $value;
+        $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_ECB);
+        $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
+        $crypttext = mcrypt_encrypt(MCRYPT_RIJNDAEL_256, $this->skey, $text, MCRYPT_MODE_ECB, $iv);
+        return trim($this->safe_b64encode($crypttext)); 
+    }
+    private function decode($value)
+    {
+        if(!$value)	return false;
+        $crypttext = $this->safe_b64decode($value); 
+        $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_ECB);
+        $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
+        $decrypttext = mcrypt_decrypt(MCRYPT_RIJNDAEL_256, $this->skey, $crypttext, MCRYPT_MODE_ECB, $iv);
+        return trim($decrypttext);
+    }
 }
 
