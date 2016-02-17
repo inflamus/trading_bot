@@ -16,7 +16,7 @@ function walk_recursive_remove (array $array, callable $callback) {
 class TradingHistory
 {
 	const HISTORY_FILE = 'trading.dat.gz';
-	const GZIP = -1;
+	const GZIP = -1; // GZIP compressing level, 1-9, -1 to defaults (usually defaults to 5)
 	private $data = array(
 		/*
 			'[Isin]' => array(
@@ -76,11 +76,11 @@ class TradingHistory
 		return $this;
 	}
 	
-	public function Add($Ref, $Isin = null, $Qte = null, $Seuil = null, $Expire = null, $SeuilNo = null)
+	/*public function Add($Ref, $Isin = null, $Qte = null, $Seuil = null, $Expire = null, $SeuilNo = null)
 	{
 		if(is_array($Ref))
 			if(!empty(array_diff(array('SeuilNo', 'Ref', 'Isin', 'Seuil', 'Qte', 'Expire'), array_keys($Ref))))
-				throw new Exception('Missing a data in TradingHIstory::Add()');
+				throw new Exception('Missing a data in TradingHistory::Add()');
 			else
 				extract($Ref);
 		else
@@ -94,7 +94,7 @@ class TradingHistory
 			'SeuilNo' => (int)$SeuilNo
 			);
 		return $this;
-	}
+	}*/
 	
 	public function __destruct()
 	{
@@ -116,7 +116,10 @@ class TradingBot
 	// Les seuils se calculent selon cours actuel - {$seuil}% 
 	// eg : action à 100eur, trois seuils à 5% 6% et 7% :
 	// => seuils à 95, 94 et 93euros.
-	const SEUIL_POLICY = '4%;4.9%'; // multiple seuils allowed, splited with ";". eg: 5%;5.5%;6%
+	const SEUIL_POLICY = '3%;3.5%'; // multiple seuils allowed, splited with ";". eg: 5%;5.5%;6%
+	const POLICY_PRIORITY = 'ASC'; // ASC = la priorité est le seuil le plus proche du cours. => maximise les benefices
+									// DESC = la priorité est au seuil le plus lointain. => moins d'ordres executés.
+	const STOPLOSS = true; // par défaut, mettre des stoploss
 	
 	public $GlobalParams = array(
 		'FraisBoursiers' => self::FRAIS_BOURSIERS,
@@ -124,6 +127,8 @@ class TradingBot
 		'SommeMinimale' => self::SOMME_MINIMALE,
 		'SeuilExpireWeeks' => self::SEUIL_EXPIRE_WEEKS,
 		'SeuilPolicy' => self::SEUIL_POLICY,
+		'PolicyPriority' => self::POLICY_PRIORITY,
+		'StopLoss' => self::STOPLOSS,
 		);
 	public $ByISINParams = array(
 		/*
@@ -148,11 +153,12 @@ class TradingBot
 	
 	public function __get($k)
 	{
-		if(array_key_exists($k, $this->ByISINParams))
-			return $this->ByISINParams[$this->curr][$k];
+		if(array_key_exists($this->curr, $this->ByISINParams))
+			if(array_key_exists($k, $this->ByISINParams[$this->curr]))
+				return $this->ByISINParams[$this->curr][$k];
 		if(array_key_exists($k, $this->GlobalParams))
 			return $this->GlobalParams[$k];
-		throw new Exception('Wrong key in Params');
+		throw new Exception('Wrong key ['.$key.'] in Params');
 	}
 	
 	public function GlobalParams($key, $val)
@@ -165,6 +171,8 @@ class TradingBot
 	
 	public function IsinParams($isin, $key, $val)
 	{
+		if(!$this->CM->isISIN($isin))
+			throw new Exception('Wrong ISIN');
 		$this->ByISINParams[$isin][$key] = $val;
 		return $this;
 	}
@@ -181,7 +189,7 @@ class TradingBot
 			print (string)$stock . "\n";
 // 			print $stock->PlusvaluePCT . "\n";
 			
-			if($mode & self::DAILYCHECKUP_VENTE)
+			if($mode & self::DAILYCHECKUP_VENTE && $this->StopLoss)
 				// Placer des ordres Stops si position favorable, selon la Seuil_policy
 				$this->Seuils($stock);
 			
@@ -193,7 +201,8 @@ class TradingBot
 	private function Seuils(Action $stock)
 	{
 		$min = ((float)$this->BeneficeMinimal + (float)$this->FraisBoursiers);
-		if((float)$stock->PlusvaluePCT > $min) // Gain supérieur à 5.9%
+// 		print $min .'<< '.$stock->PlusvaluePCT;
+		if((float)$stock->PlusvaluePCT > (float)$this->BeneficeMinimal+(float)$this->FraisBoursiers) // Gain supérieur à 5% depuis le prix de revient, comprenant les frais boursiers.
 		{
 			// En position de mettre un ou des seuil(s) --
 			// nouveau seuil = 
@@ -203,77 +212,99 @@ class TradingBot
 			
 			// les seuils à faire...
 			$policy = explode(';',$this->SeuilPolicy);
-			sort($policy, SORT_NUMERIC);
+			if($this->PolicyPriority == 'ASC')
+				sort($policy, SORT_NUMERIC);
+			else
+				rsort($policy, SORT_NUMERIC);
 			array_walk($policy, function(&$v){
 				if($v > (float) $this->BeneficeMinimal)
 // 					exit( 'Position perdante !' );
 					$v = $this->BeneficeMinimal; // Previent le seuil d'être inférieur au bénéfice minimal. Le but est de ne jamais perdre d'argent.
+				if($v < $this->FraisBoursiers*2) // Si le seuil est inférieur aux frais boursiers, 
+					$v = $this->FraisBoursiers*2; // arbitrairement à 2, pour ne pas gagner moins que le courtier.
 				});
-				// les quantités d'actions pour chaque seuil.
-			$qseuil = array_fill(0, count($policy), floor($qte/count($policy)));
-			$qseuil[0] += $qte%count($policy);
-				
-				// Le nombre de seuils que l'on peut faire au maximum.
-			$maxloops = (int)floor($qte * $cours / (float) $this->SommeMinimale);
-			if($maxloops < 1)
-				$maxloops = 1;
-			if($maxloops > count($policy))
-				$maxloops = count($policy);
-		
+			$policy = array_unique($policy, SORT_NUMERIC); // Remove duplicates if any.
+// 			print_r($policy);
+			// les quantités d'actions pour chaque seuil.
+			$nbSeuilsAFaire = min(
+				array(
+					floor(
+						$this->CalcCours($cours, end($policy)) // le cours * le dernier seuil possible, comprenant les frais boursiers.
+						*$qte		// le cours par la quantité représente une somme obtensible maximale
+						/(int)$this->SommeMinimale // 1000e, car les frais boursiers ont un prix plancher.
+					), 
+					count($policy)
+				)
+				);
+			if($nbSeuilsAFaire <1)	$nbSeuilsAFaire = 1; // Si la quantité d'actions * le cours est inférieure a la somme minimale... genre ~500e de plus value latente
+// 			print 'nbSeuils : '.$nbSeuilsAFaire;
+			
+			$seuils = array_map(null,
+				// Seuils  (index 0)
+				array_slice(
+					array_map(
+						function($v) use ($cours) {
+							return $this->Step($this->CalcCours($cours, $v)); // Constuit les seuils sur le dernier cours connu.
+						},	
+						$policy),
+				0, $nbSeuilsAFaire),// selectionne les seuils compatibles.
+				// Qté (index 1)
+				array_fill(0, $nbSeuilsAFaire, floor($qte/$nbSeuilsAFaire))
+				);
+			$seuils[0][1] += $qte%$nbSeuilsAFaire;
+			
 			$i = 0;
 			do // Determine les ordres à passer selon les multiples seuils
 			{
-				$seuilpct = (float)$policy[$i];
-				$nseuil = $cours * (
-						(100-
-						$seuilpct-
-						(float)$this->FraisBoursiers)
-					/100);
-				
-				// Step
-				$nseuil = $this->Step($nseuil);
 				
 // 				print "Nseuil $nseuil - QSeuil {$qseuil[$i]}\n";
 				$oseuil = $this->DB->getOrdersFor($stock->isin, 'Vente');
-				var_dump($oseuil);
+// 				var_dump($oseuil);
 				if(is_array($oseuil))
 					if(isset($oseuil[$i]))
 					{
-						if($oseuil[$i]['Seuil'] < $nseuil)
-							$oseuil[$i]['Ordre']->Delete();
+						if($oseuil[$i]['Seuil'] < $seuils[$i][0])
+							$oseuil[$i]['Ordre']->Delete(); //Supprime l'ancien ordre avec un seuil inf.
 					}
 					
 				// Ajout de l'ordre
-// 				try{
-				$dat = $this->CM->Ordre($stock->isin)
-					->Vendre($qseuil[$i])
-					->ASeuil($nseuil)
-					->Hebdomadaire($this->SeuilExpireWeeks)
-					->Exec();
+				try{
+					$dat = $this->CM->Ordre($stock->isin)
+						->Vendre($seuils[$i][1]) // Qté
+						->ASeuil($seuils[$i][0]) // Seuil
+						->Hebdomadaire($this->SeuilExpireWeeks)
+						->Exec()
+						;
 
-				print 'ADDING ORDER '.$stock->isin.' '.$qseuil[$i].', seuil = '.$nseuil.', expire '.$this->SeuilExpireWeeks ."\n";
-				$this->DB->AddOrder('Vente',
-					$dat, 
-					array(
-						'Seuil' => $nseuil,
-						'Expire' => strtotime('last Friday of +'.$this->SeuilExpireWeeks.'weeks')
-					));
-// 				}catch(Exception $e)
-// 				{
-// 					print $e->getMessage();
-// 				}
-			}while(++$i < $maxloops);
+					print 'ADDING ORDER '.$stock->isin.' : '.$seuils[$i][1].' * seuil = '.$seuils[$i][0].', expire '.$this->SeuilExpireWeeks ." week\n";
+					$this->DB->AddOrder('Vente',
+						$dat, 
+						array(
+							'Seuil' => $seuils[$i][0],
+							'Expire' => strtotime('last Friday of +'.$this->SeuilExpireWeeks.'weeks')
+						));
+				}catch(Exception $e)
+				{
+					print $e->getMessage();
+				}
+			}while(++$i < $nbSeuilsAFaire);
 		}
 		else
-			print 'Position non perdante, pas de vente pour le moment. ... ';
+			print ' Position perdante, pas de vente pour le moment car pas de vente à perte.'."\n";
 	}
 	
 	private function Step($nseuil)
 	{
+// 		print $nseuil;
 		if($nseuil < 20) $nseuil = round($nseuil*200)/200; //<20 => 3 chiffres apres la virgule,
 		elseif($nseuil >= 100) $nseuil = round($nseuil*20)/ 20; // >100 => step every .05
 		else	$nseuil = round($nseuil, 2); // 20-100 , deux chiffres apres la virgule.
 		return $nseuil;
+	}
+	
+	private function CalcCours($cours, $pct)
+	{
+		return (float)$cours * (100 - (float)$pct + (float)$this->FraisBoursiers)/100;
 	}
 
 // 	public function NouveauSeuil(
