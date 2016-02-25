@@ -401,29 +401,29 @@ class Stock extends StockCache implements Iterator
 		$this->subdata = $this->subDataIndex($d);
 		return $this;
 	}
-	public function Volume()
+	public function Volume($return_as_array = false)
 	{
-		return $this->setSubData(4);
+		return $return_as_array && function_exists('array_column') ? array_column($this->data, 4) : $this->setSubData(4);
 	}
-	public function Open()
+	public function Open($return_as_array = false)
 	{
-		return $this->setSubData(0);
+		return $return_as_array && function_exists('array_column') ? array_column($this->data, 0) : $this->setSubData(0);
 	}
-	public function Low()
+	public function Low($return_as_array = false)
 	{
-		return $this->setSubData(1);
+		return $return_as_array && function_exists('array_column') ? array_column($this->data, 1) : $this->setSubData(1);
 	}
-	public function High()
+	public function High($return_as_array = false)
 	{
-		return $this->setSubData(2);
+		return $return_as_array && function_exists('array_column') ? array_column($this->data, 2) : $this->setSubData(2);
 	}
-	public function AdjustedClose()
+	public function AdjustedClose($return_as_array = false)
 	{
-		return $this->setSubData(5); // Adjusted close, in euros.
+		return $return_as_array && function_exists('array_column') ? array_column($this->data, 5) : $this->setSubData(5); // Adjusted close, in euros.
 	}
-	public function Close()
+	public function Close($return_as_array = false)
 	{
-		return $this->setSubData(3);
+		return $return_as_array && function_exists('array_column') ? array_column($this->data, 3) : $this->setSubData(3);
 	}
 	
 	/* Iterator functions */
@@ -490,6 +490,13 @@ class StockAnalysis
 		return $this->buildCache[$close] = $re;
 	}
 	
+	public function SimpleMACD($short = 12, $long = 26, $signal = 9)
+	{
+		// Data.
+		// Extract the last data 5 times the long period, for performance reasons.
+		$macd = trader_macd($this->cache, $short, $long, $signal);
+		return end($macd[2])>0 ? 1 : -1;
+	}
 	public function MACD($short=12, $long=26, $signal=9)
 	{
 		// Data.
@@ -561,6 +568,25 @@ class StockAnalysis
 		
 		return $return;
 		
+	}
+	
+	public function Volatilité($period = 200)
+	{
+// 		$vol = trader_var(array_slice($this->cache, $period *-1), $period);
+// // 		return end($vol);
+// 		return sqrt(end($vol));
+		$a = array_slice($this->cache, $period*-1);
+		$n = $period;
+		$mean = array_sum($a) / $n;
+		$carry = 0.0;
+		foreach ($a as $val) {
+			$d = ((double) $val) - $mean;
+			$carry += $d * $d;
+		};
+// 		if ($sample) {
+// 			--$n;
+// 		}
+		return sqrt($carry / $n);
 	}
 	
 	public function PointsPivots()
@@ -635,7 +661,10 @@ class StockAnalysis
 		return 0;
 // 		return $re;
 	}
-	
+	public function SMA($s = 20, $m = 50, $l = 100)
+	{
+		return $this->SMM($s, $m, $l);
+	}
 // 	private function Oscillator($data )
 	
 	public function Williams($period = 14, $surachat = -20, $survente = -80)
@@ -667,11 +696,34 @@ class StockAnalysis
 		
 	}
 		
-	public function RSI($period = 14)
+	public function RSI($period = 14, $limbasse = 30, $limhaute = 70)
 	{
 		//TODO : interpreter
 		$RSI = trader_rsi(array_slice($this->cache, $period *-2), $period);
-		return $RSI;
+		$R = end($RSI);
+		if($R < 50)
+			if(prev($RSI)<$limbasse && $R > $limbasse) // a franchi a la hausse le seuil de survente
+				return 2;
+			elseif($R < $limbasse-10)
+				return 1;
+			else
+				return 0;
+			else
+			if(prev($RSI)>$limhaute && $R < $limhaute)
+				return -2;
+			elseif($R > $limhaute -10)
+				return -1;
+			else
+				return 0;
+		return 0;
+	}
+	public function FastRSI()
+	{
+		return $this->RSI(9);
+	}
+	public function SlowRSI()
+	{
+		return $this->RSI(25);
 	}
 	
 	public function RegressionLineaire($data)
@@ -687,9 +739,9 @@ class StockAnalysis
 		return trader_ht_trendline(array_slice($this->cache, -100));
 	}
 	
-	public function MOM()
+	public function MOM($period = 12)
 	{
-		return trader_mom(array_slice($this->cache, -30), 9);
+		return end(trader_mom(array_slice($this->cache, $period*-3), $period)) > 0 ? 1 : -1;
 	}	
 	
 	public function Bollinger($period = 20)
@@ -783,16 +835,136 @@ class StockAnalysis
 	
 	public function OBV()
 	{
-		$OBV = trader_obv(array_slice($this->cache, -30), array_slice($this->buildData('Volume'), -30));
-		return $OBV;
+		$OBV = trader_obv(array_slice($this->cache, -60), array_slice($this->buildData('Volume'), -60));
+// 		return $OBV;
+		return round(end($OBV)/100) > 0 ? 1 : -1;
+	}
+	
+	// Returns somekind of weight of volumes during the 5 last days.
+	// Donne la puissance de la tendance.
+	public function Volumes($short = 5, $long = 20)
+	{
+		return round(
+			round(
+				array_sum(array_slice($this->buildData('Volume'), $short*-1))
+				/ $short) 
+			/ round(
+				array_sum(array_slice($this->buildData('Volume'), $long*-1))
+				/ $long)
+			, 3);
+// 			? 1
+// 			: -1;
+	}
+	
+	public function LongVolumes()
+	{
+		return $this->Volumes(14,28);
 	}
 	
 	public function Candle()
 	{
-		return trader_cdlharami(
-			array_slice($this->buildData('Open'), -30),
-			array_slice($this->buildData('High'), -30),
-			array_slice($this->buildData('Low'), -30),
-			array_slice($this->buildData('Close'), -30));
+		$open = array_slice($this->buildData('Open'), -21);
+		$high = array_slice($this->buildData('High'), -21);
+		$low = array_slice($this->buildData('Low'), -21);
+		$close = array_slice($this->buildData('Close'), -21);
+		
+		$usefulcdl = array(
+			'piercing',
+			'hammer',
+			'engulfing',
+			'morningstar',
+			'eveningstar', 
+// 			'dojistar', // plus précoce, plus sensiblr mais moins spécifique.
+			'abandonedbaby',
+			'shootingstar',
+			//Tesing
+// 			'longline', // trop peu précis.
+			'3blackcrows',
+			'counterattack',
+			'mathold',
+			'tasukigap',
+			'gapsidesidewhite',
+			'2crows',
+// 			'darkcloudcover', // A voir... donne des ordres de vente un peu trop faciles
+// 			'xsidegap3methods', // too late. too obvious.
+// 			'hangingman'
+		);
+		/*  Testing ...
+		$indecisecdl = array(
+			'highwave',
+			'harami', 
+			'haramicross', 
+			'spinningtop',
+			'rickshawman', 
+			);
+		$retournementcdl = array(
+// 			'upsidegap2crows', 
+			'doji', 
+			'dojistar', 
+			'dragonflydoji', 
+			'morningdojistar', 
+			'eveningdojistar',
+			'gravestonedoji',
+			'longleggeddoji',
+// 			'shootingstar',
+// 			'morningstar', 
+// 			'eveningstar', 
+// 			'abandonedbaby', 
+// 			'darkcloudcover', 
+// 			'unique3river', 
+// 			'engulfing', 
+// 			'counterattack', 
+// 			'belthold', 
+// 			'3blackcrows', 
+// 			'identical3crows', 
+// 			'risefall3methods', 
+// 			'2crows', 
+// 			'piercing', 
+// 			'hammer',
+// 			'tristar',
+// 			'3inside', 
+// 			'3outside', 
+// 			'3starsinsouth',
+// 			'breakaway', 
+// 			'kicking',
+// 			'kickingbylength',
+// 			'ladderbottom',
+// 			'takuri',
+// 			'thrusting',
+// 			'hikkake', 'hikkakemod', 
+// 			'shortline', 'stalledpattern', 
+			);
+		$confirmationcdl = array( 
+			'matchinglow',   
+			'separatinglines',
+			'sticksandwich', 
+			'longline', 
+			'invertedhammer', 
+			'marubozu',
+			'closingmarubozu',
+			'advanceblock', 
+			'homingpigeon', 
+			'tasukigap', 
+			'xsidegap3methods', 
+			'gapsidesidewhite', 
+			'3whitesoldiers', 
+			'3linestrike', 
+			'mathold', 
+			'concealbabyswall', 
+			'inneck',
+			'onneck',
+			);
+			
+			*/
+		$re = 0;
+		foreach($usefulcdl as $func)
+		{
+			$res = end(call_user_func('trader_cdl'.$func, $open, $high, $low, $close));
+// 			if( $res > 0 ) print $func.' resulted '.$res."\n";
+// 			if( $res < 0 ) print $func.' resulted '.$res."\n";
+			$re += $res;
+		}
+		
+		return (int)( $re/100 );
 	}
 }

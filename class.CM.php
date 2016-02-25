@@ -692,7 +692,6 @@ class Ordre extends CreditMutuel
 	
 	public function __set($n, $v)
 	{
-		print $n.' => '.$v;
 		if(array_key_exists($n, $this->OrdreData) || $n == 'Limit' || $n == 'StopLimit')
 			$this->OrdreData[$n] = $v;
 		else

@@ -111,6 +111,7 @@ class TradingBot
 {
 	const SOMME_MINIMALE = '1000 €';
 	const FRAIS_BOURSIERS = '0.9%';
+	// Vente auto
 	const BENEFICE_MINIMAL = '5%'; // le benefice minimal a partir duquel la question du seuil doit se poser.
 	const SEUIL_EXPIRE_WEEKS = 1;
 	// Les seuils se calculent selon cours actuel - {$seuil}% 
@@ -120,6 +121,9 @@ class TradingBot
 	const POLICY_PRIORITY = 'ASC'; // ASC = la priorité est le seuil le plus proche du cours. => maximise les benefices
 									// DESC = la priorité est au seuil le plus lointain. => moins d'ordres executés.
 	const STOPLOSS = true; // par défaut, mettre des stoploss
+	// Achat Auto
+	const INDICATEUR_ACHAT = 'RSI&Stochastic'; // Will check if RSI() and Stochastic() returns a buy signal. It's the default signal.
+	const VALO_MAX = '4000 €'; // La valorisation maximale par action. Si la valeur portefeuille dépasse, l'ordre d'achat est annulé.
 	
 	public $GlobalParams = array(
 		'FraisBoursiers' => self::FRAIS_BOURSIERS,
@@ -129,6 +133,8 @@ class TradingBot
 		'SeuilPolicy' => self::SEUIL_POLICY,
 		'PolicyPriority' => self::POLICY_PRIORITY,
 		'StopLoss' => self::STOPLOSS,
+		'IndicateurAchat' => self::INDICATEUR_ACHAT,
+		'ValorisationMax' => self::VALO_MAX,
 		);
 	public $ByISINParams = array(
 		/*
@@ -136,7 +142,78 @@ class TradingBot
 				//GlobalParams like
 				);
 		*/
+		'FR0000120073' => array( // Air Liquide [AI]
+			'IndicateurAchat' => 'RSI&LongStochastic|RSI&Stochastic' // specific buy signal
+			),
+		'BE0003470755' => array( // Solvay [SOLB]
+			'IndicateurAchat' => array() // Aucun Indicateur significativement meilleur à l'achat.
+			),
+		'FR0010307819' => array( // Legrand [LR]
+			'IndicateurAchat' => array() // Aucun, ou RSI+LongSto
+			),
+		'FR0000125486' => array( // Vinci [DG]
+			'IndicateurAchat' => 'RSI'
+			),
+		'FR0000130452' => array( // Eiffage [EFR]
+			'IndicateurAchat' => 'RSI'
+			),
+		'FR0000120321' => array( // L'Oreal [OR]
+			'IndicateurAchat' => 'RSI&Stochastic|RSI'  // unproved
+			),
+		'FR0000127771' => array( // Vivendi [VIV]
+			'IndicateurAchat' => array() // Aucun achat automatique
+			),
+		'FR0000130213' => array( // Lagardere [MMB]
+			'IndicateurAchat' => 'RSI&LongStochastic|RSI&Stochastic'
+			),
+		'FR0000131104' => array( // BNP Paribas [BNP]
+			'IndicateurAchat' => array() // Aucun
+			),
+		'FR0000120644' => array( // Danone [BN]
+			'IndicateurAchat' => 'RSI|RSI&LongStochastic|RSI&Stochastic'
+			),
+		'FR0000120693' => array( // Pernod Ricard [RI]
+			'IndicateurAchat' => 'RSI&LongStochastic|RSI|RSI&Stochastic'
+			),
+		'FR0000121667' => array( // Essilor [EI]
+			'IndicateurAchat' => 'RSI&Williams|RSI',
+			),
+		'FR0000120578' => array( // Sanofi [SAN]
+			'IndicateurAchat' => array() // Aucun
+			),
+		'FR0000125585' => array( // Casino [CO]
+			'IndicateurAchat' => 'RSI&LongStochastic|RSI&Stochastic&Williams|RSI&Stochastic'
+			),
+		'FR0000120172' => array( // Carrefour [CA]
+			'IndicateurAchat' => array() // aucun
+			),
+		'FR0000120628' => array( // Axa [CS]
+			'IndicateurAchat' => array() // Aucun
+			),
+		'FR0000120222' => array( // CNP Assurances [CNP]
+			'IndicateurAchat' => array() // Aucun
+			),
+		'FR0000121485' => array( // Kering [KER]
+			'IndicateurAchat' => array() // Aucun car RSI+Stoch sous performe.
+			),
+		'FR0004035913' => array( // Iliad [ILD]
+			'IndicateurAchat' => 'RSI&LongStochastic'
+			),
+		'FR0000133308' => array( // Orange [ORA]
+			'IndicateurAchat' => 'RSI|RSI&LongStochastic|RSI&Stochastic'
+			),
+// 		'FR0000121501' => array( // Peugeot [UG]
+// 			'IndicateurAchat' => 'RSI&Stochastic' //Defaults
+// 			),
+		'FR0000124570' => array( // Plastic Ominum [POM]
+			'IndicateurAchat' => 'RSI&LongStochastic&Williams|RSI&LongStochastic|RSI&Stochastic'
+			),
+// 		'FR0000121261' => array( // Michelin [ML]
+// 			'IndicateurAchat' => 'RSI&Stochastic' // defaults
+// 			),
+		
 		);
+	protected $Watchlist = array();
 
 	private $DB = null;
 	private $CM = null;
@@ -158,7 +235,7 @@ class TradingBot
 				return $this->ByISINParams[$this->curr][$k];
 		if(array_key_exists($k, $this->GlobalParams))
 			return $this->GlobalParams[$k];
-		throw new Exception('Wrong key ['.$key.'] in Params');
+		throw new Exception('Wrong key ['.$k.'] in Params');
 	}
 	
 	public function GlobalParams($key, $val)
@@ -177,6 +254,39 @@ class TradingBot
 		return $this;
 	}
 	
+	public function Watchlist(Stock $stock, $isin = '', $sens='A')
+	{
+		if(!$this->CM->isISIN($isin))
+		{
+			$isin = strstr($stock->stock, '.', true);
+			if(!$this->CM->isISIN($isin))
+				throw new Exception('Wrong ISIN');
+		}
+		if(is_string($sens) && (strtolower($sens[0])=='v' || strtolower($sens[0])=='s'))
+			$sens = -1;
+		else
+			$sens = 1;
+// 		if(is_string($ind))
+// 			foreach(explode('|', $ind) as $ou)
+// 				$ind[] = explode('&', $ou); // $et
+		$this->Watchlist[$isin] = array($stock, $isin, $sens);
+		return $this;
+	}
+	
+	private function IndSplit($ind)
+	{
+		if(is_string($ind) && !empty($ind))
+		{
+			$i = array();
+			foreach(explode('|', $ind) as $ou)
+				$i[] = explode('&', $ou); // $et
+			return $i;
+		}
+// 		print_r($i);
+		return $ind;
+	}
+	
+	private $Valorisation = array();
 	private $curr = 'isin';
 	const DAILYCHECKUP_VENTE = 0x1;
 	const DAILYCHECKUP_ACHAT = 0x2;
@@ -185,8 +295,9 @@ class TradingBot
 	{
 		foreach($this->CM->Valorisation() as $stock)
 		{
+			$this->Valorisation[$stock->isin] = $stock;
 			$this->curr = $stock->isin;
-			print (string)$stock . "\n";
+// 			print (string)$stock . "\n";
 // 			print $stock->PlusvaluePCT . "\n";
 			
 			if($mode & self::DAILYCHECKUP_VENTE && $this->StopLoss)
@@ -194,14 +305,58 @@ class TradingBot
 				$this->Seuils($stock);
 			
 		}
+		if($mode & self::DAILYCHECKUP_ACHAT)
+			foreach($this->Watchlist as $isin => $watch)
+			{
+				$this->curr = $isin;
+				try{
+					print $this->curr;
+					$this->Achats($watch);
+				}catch(Exception $e)
+				{
+					print $e->getMessage();
+				}
+			}
+		
 		$this->curr = null; // reset isin pointer
 		return $this;
 	}
 	
+	private function Achats($watch)
+	{
+		list($stock, $isin, $sens) = $watch;
+		$ind = $this->IndSplit($this->IndicateurAchat);
+		print_r($ind);
+		if(empty($ind))
+			return $this; // Si aucun indicateur n'est spécifié, abort.
+		foreach($ind as $ou)
+		{
+// 			print ' '.$stock->stock.' '.implode('&',$ou)."\n";
+			foreach($ou as $func) //required func
+				if($stock->Analysis()->$func() <= 0)
+					continue 2; // Passe au second indicateur si le premier rétorque faux.
+			// La combinaison d'indicateur donne un signal d'achat.
+// 			return $sens == 1 ? $this->OrdreAchat($stock) : $this->OrdreVente($stock);
+			return $this->OrdreAchat($stock, $isin);
+			break;
+		}
+	}
+	
+	private function OrdreAchat(Stock $stock, $isin)
+	{
+// 		foreach($this->Valorisation() as $valeur)
+		if(array_key_exists($isin, $this->Valorisation))
+			//La valeur à acheter est déja dans le portefeuille,
+				if((float)$this->Valorisation[$isin]->ValueInEur >= (float)$this->ValorisationMax)
+					throw new Exception('Valorisation maximale pour '.(string)$valeur.' est atteinte à '.$this->Valorisation[$isin]->ValueInEur);
+		$nominal = ceil($this->SommeMinimale / $stock->getLast());
+		print 'ACHAT '.$nominal.' '.$stock->stock.' ['.$isin.'] au dernier cours ('.$stock->getLast().'€)'."\n";
+		return $this;
+		$this->CM->Ordre($isin)->Achat($nominal)->AuDernierCours()->Jour()->Exec();
+	}
+	
 	private function Seuils(Action $stock)
 	{
-		$min = ((float)$this->BeneficeMinimal + (float)$this->FraisBoursiers);
-// 		print $min .'<< '.$stock->PlusvaluePCT;
 		if((float)$stock->PlusvaluePCT > (float)$this->BeneficeMinimal+(float)$this->FraisBoursiers) // Gain supérieur à 5% depuis le prix de revient, comprenant les frais boursiers.
 		{
 			// En position de mettre un ou des seuil(s) --
@@ -257,16 +412,20 @@ class TradingBot
 			do // Determine les ordres à passer selon les multiples seuils
 			{
 				
+				try{
 // 				print "Nseuil $nseuil - QSeuil {$qseuil[$i]}\n";
 				$oseuil = $this->DB->getOrdersFor($stock->isin, 'Vente');
 // 				var_dump($oseuil);
 				if(is_array($oseuil))
 					if(isset($oseuil[$i]))
 					{
-						if($oseuil[$i]['Seuil'] < $seuils[$i][0])
+						if($oseuil[$i]['Seuil'] <= $seuils[$i][0])
 							$oseuil[$i]['Ordre']->Delete(); //Supprime l'ancien ordre avec un seuil inf.
 					}
-					
+				}catch(Exception $e)
+				{
+					print $e->getMessage();
+				}
 				// Ajout de l'ordre
 				try{
 					$dat = $this->CM->Ordre($stock->isin)
