@@ -142,8 +142,9 @@ class TradingBot
 				//GlobalParams like
 				);
 		*/
+		// Adjusted params from a quick study https://docs.google.com/spreadsheets/d/1ekQSj2Y0468rR16UQAm1m702RulnPcs4Bcezd-N98wI/edit
 		'FR0000120073' => array( // Air Liquide [AI]
-			'IndicateurAchat' => 'RSI&LongStochastic|RSI&Stochastic' // specific buy signal
+			'IndicateurAchat' => 'RSI&LongStochastic' //|RSI&Stochastic specific buy signal
 			),
 		'BE0003470755' => array( // Solvay [SOLB]
 			'IndicateurAchat' => array() // Aucun Indicateur significativement meilleur à l'achat.
@@ -152,37 +153,37 @@ class TradingBot
 			'IndicateurAchat' => array() // Aucun, ou RSI+LongSto
 			),
 		'FR0000125486' => array( // Vinci [DG]
-			'IndicateurAchat' => 'RSI'
+			'IndicateurAchat' => 'RSI' // Less selective than RSI&Stoch
 			),
-		'FR0000130452' => array( // Eiffage [EFR]
-			'IndicateurAchat' => 'RSI'
+		'FR0000130452' => array( // Eiffage [FGR]
+			'IndicateurAchat' => 'RSI' // Idem vinci
 			),
 		'FR0000120321' => array( // L'Oreal [OR]
-			'IndicateurAchat' => 'RSI&Stochastic|RSI'  // unproved
+			'IndicateurAchat' => 'RSI&Williams'  //RSI + williams fait mieux que RSI+Stoch
 			),
 		'FR0000127771' => array( // Vivendi [VIV]
 			'IndicateurAchat' => array() // Aucun achat automatique
 			),
 		'FR0000130213' => array( // Lagardere [MMB]
-			'IndicateurAchat' => 'RSI&LongStochastic|RSI&Stochastic'
+			'IndicateurAchat' => 'RSI&LongStochastic' //|RSI&Stochastic
 			),
 		'FR0000131104' => array( // BNP Paribas [BNP]
 			'IndicateurAchat' => array() // Aucun
 			),
 		'FR0000120644' => array( // Danone [BN]
-			'IndicateurAchat' => 'RSI|RSI&LongStochastic|RSI&Stochastic'
+			'IndicateurAchat' => 'RSI' //|RSI&LongStochastic|RSI&Stochastic
 			),
 		'FR0000120693' => array( // Pernod Ricard [RI]
-			'IndicateurAchat' => 'RSI&LongStochastic|RSI|RSI&Stochastic'
+			'IndicateurAchat' => 'RSI&LongStochastic' //RSI&Stoch or RSI
 			),
 		'FR0000121667' => array( // Essilor [EI]
-			'IndicateurAchat' => 'RSI&Williams|RSI',
+			'IndicateurAchat' => 'RSI&Williams',
 			),
 		'FR0000120578' => array( // Sanofi [SAN]
 			'IndicateurAchat' => array() // Aucun
 			),
 		'FR0000125585' => array( // Casino [CO]
-			'IndicateurAchat' => 'RSI&LongStochastic|RSI&Stochastic&Williams|RSI&Stochastic'
+			'IndicateurAchat' => 'RSI&LongStochastic|RSI&Stochastic&Williams' //|RSI&Stochastic
 			),
 		'FR0000120172' => array( // Carrefour [CA]
 			'IndicateurAchat' => array() // aucun
@@ -200,13 +201,13 @@ class TradingBot
 			'IndicateurAchat' => 'RSI&LongStochastic'
 			),
 		'FR0000133308' => array( // Orange [ORA]
-			'IndicateurAchat' => 'RSI|RSI&LongStochastic|RSI&Stochastic'
+			'IndicateurAchat' => 'RSI'
 			),
 // 		'FR0000121501' => array( // Peugeot [UG]
 // 			'IndicateurAchat' => 'RSI&Stochastic' //Defaults
 // 			),
 		'FR0000124570' => array( // Plastic Ominum [POM]
-			'IndicateurAchat' => 'RSI&LongStochastic&Williams|RSI&LongStochastic|RSI&Stochastic'
+			'IndicateurAchat' => 'RSI&LongStochastic&Williams|RSI&LongStochastic' //|RSI&Stochastic
 			),
 // 		'FR0000121261' => array( // Michelin [ML]
 // 			'IndicateurAchat' => 'RSI&Stochastic' // defaults
@@ -249,7 +250,7 @@ class TradingBot
 	public function IsinParams($isin, $key, $val)
 	{
 		if(!$this->CM->isISIN($isin))
-			throw new Exception('Wrong ISIN');
+			throw new Exception('Wrong ISIN '.$isin);
 		$this->ByISINParams[$isin][$key] = $val;
 		return $this;
 	}
@@ -326,7 +327,7 @@ class TradingBot
 	{
 		list($stock, $isin, $sens) = $watch;
 		$ind = $this->IndSplit($this->IndicateurAchat);
-		print_r($ind);
+// 		print_r($ind);
 		if(empty($ind))
 			return $this; // Si aucun indicateur n'est spécifié, abort.
 		foreach($ind as $ou)
