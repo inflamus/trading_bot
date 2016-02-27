@@ -497,6 +497,18 @@ class StockAnalysis
 		$macd = trader_macd($this->cache, $short, $long, $signal);
 		return end($macd[2])>0 ? 1 : -1;
 	}
+	public function SignalMACD($short = 12, $long = 26, $signal = 9)
+	{
+		// Data.
+		// Extract the last data 5 times the long period, for performance reasons.
+		$macd = trader_macd($this->cache, $short, $long, $signal);
+		if(end($macd[2])>0 && prev($macd[2])<0)
+			return 1;
+		if(end($macd[2])<0 && prev($macd[2])>0)
+			return -1;
+		return 0;
+// 		return end($macd[2])>0 &&  ? 1 : -1;
+	}
 	public function MACD($short=12, $long=26, $signal=9)
 	{
 		// Data.
@@ -967,4 +979,121 @@ class StockAnalysis
 		
 		return (int)( $re/100 );
 	}
+	
+	public function CCI($period = 14)
+	{
+		$cci = trader_cci(
+			array_slice($this->buildData('High'), $period*-2),
+			array_slice($this->buildData('Low'), $period*-2),
+			array_slice($this->buildData('AdjustedClose'), $period*-2),
+			$period);
+		if(end($cci) >-100 && prev($cci) <-100) // cross CCI de la limite de survente à la hausse
+			return 1;
+		if(end($cci) <100 && prev($cci)>100) // cross CCI a la baisse ..
+			return -1;
+		return 0;
+	}
+	
+	// Results seems weird...
+// 	public function Benchmark()
+// 	{
+// 		$Closes = array_values($this->cache);
+// 		$binary = function(&$v, $k, $data)
+// 			{
+// 				if($v>$data[1][0] && $data[0][$k-1]<$data[1][0]) return $v = 1;
+// 				if($v<$data[1][1] && $data[0][$k-1]>$data[1][1]) return $v = -1;
+// 				return $v = 0;
+// 			};
+// 		$WILL = trader_willr(
+// 			$this->buildData('High'),
+// 			$this->buildData('Low'),
+// 			$this->buildData('Adjusted'),
+// 			14);
+// 		array_walk($WILL, $binary, array($WILL, array(-80,-20)));
+// 		$CCI = trader_cci(
+// 			$this->buildData('High'),
+// 			$this->buildData('Low'),
+// 			$this->buildData('AdjustedClose'),
+// 			14);
+// 		array_walk($CCI, $binary, array($CCI, array(-100,100)));
+// 		$RSI = trader_rsi($this->buildData('AdjustedClose'), 14);
+// 		array_walk($RSI, $binary, array($RSI, array(30,70)));
+// 		$MACD = trader_macd($this->buildData('AdjustedClose'), 12,26,9);
+// 		$MACD = $MACD[2];
+// 		array_walk($MACD, $binary, array($MACD, array(0,0)));
+// 		$STO = trader_stoch(
+// 			$this->buildData('High'),
+// 			$this->buildData('Low'),
+// 			$this->buildData('Close'),
+// 			14,
+// 			3,
+// 			TRADER_MA_TYPE_SMA,
+// 			3,
+// 			TRADER_MA_TYPE_SMA
+// 			);
+// 		$STO = $STO[0];
+// 		array_walk($STO, $binary, array($STO, array(20,80)));
+// 		$LSTO = trader_stoch(
+// 			$this->buildData('High'),
+// 			$this->buildData('Low'),
+// 			$this->buildData('Close'),
+// 			39,
+// 			1,
+// 			TRADER_MA_TYPE_SMA,
+// 			1,
+// 			TRADER_MA_TYPE_SMA
+// 			);
+// 		$LSTO = $LSTO[0];
+// 		array_walk($LSTO, $binary, array($LSTO, array(20,80)));
+// 		// Interpret.
+// 		$intersect = array(
+// 			'SignalMACD' => array_diff($MACD, array(0,-1)),
+// 			'CCI&SignalMACD' => array_intersect_assoc(array_diff($CCI,array(0, -1)), $MACD),
+// 			'RSI&Stochastic' => array_intersect_assoc(array_diff($STO,array(0, -1)), $RSI),
+// 			'RSI&LongStochastic' => array_intersect_assoc(array_diff($LSTO,array(0,-1)),$RSI),
+// 			'SignalMACD&LongStochastic' => array_intersect_assoc(array_diff($MACD,array(0,-1)),$LSTO),
+// 			'SignalMACD&RSI' => array_intersect_assoc(array_diff($MACD,array(0,-1)),$RSI),
+// 			'RSI' => array_diff($RSI, array(0,-1)),
+// // 			'CCI' => array_diff($CCI, array(0,-1)),
+// 			'CCI&RSI' => array_intersect_assoc(array_diff($RSI, array(0,-1)),$CCI),
+// 			'RSI&Williams' => array_intersect_assoc(array_diff($RSI, array(0,-1)),$WILL),
+// 			);
+// 		$D = array();
+// 		$best = 'none';
+// 		$best_ = 5;
+// 		foreach($intersect as $ind => $data)
+// 		{
+// 			$D[$ind] = array('hausse' => array());
+// 			foreach($data as $k => $unusable)
+// 			{
+// 				$max = 0;
+// 				for($i = $k+1; $i < count($Closes); $i++)
+// 					if($Closes[$i] > $max)
+// 						$max = $Closes[$i];
+// 					elseif($Closes[$i] < $max*0.94)//delta 3% avant de couper court.
+// 						break 1; // break at 
+// 					else
+// 						continue 1;
+// 				$D[$ind]['hausse'][] = round(100*($max-$Closes[$k])/$Closes[$k], 2);
+// 			}
+// 			$n=count($D[$ind]['hausse']);
+// 			$D[$ind]['AVG'] = round(array_sum($D[$ind]['hausse']) / $n,3);
+// 			$carry = 0.0;
+// 			foreach ($D[$ind]['hausse'] as $val) {
+// 				$d = ((double) $val) - $D[$ind]['AVG'];
+// 				$carry += $d * $d;
+// 			}
+// 			$D[$ind]['STD'] = round(sqrt($carry / $n),3);
+// 			$D[$ind]['N'] = $n;
+// 			$D[$ind]['POWER'] = array_sum($D[$ind]['hausse']);
+// 			$D[$ind]['SMART'] = round($D[$ind]['AVG']/($D[$ind]['STD']==0 ? 1 : $D[$ind]['STD']),3);
+// 			if($D[$ind]['SMART']>$best_)
+// 			{
+// 				$best_ = $D[$ind]['SMART'];
+// 				$best = $ind;
+// 			}
+// 		}
+// 		$D['best'] = $best;
+// 		return $D;
+// 	}
 }
