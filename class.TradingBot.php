@@ -150,16 +150,16 @@ class TradingBot
 			'IndicateurAchat' => array() // Aucun Indicateur significativement meilleur à l'achat.
 			),
 		'FR0010307819' => array( // Legrand [LR]
-			'IndicateurAchat' => array() // Aucun, ou RSI+LongSto
+			'IndicateurAchat' => 'SignalMACD&CCI' // Aucun, ou RSI+LongSto
 			),
 		'FR0000125486' => array( // Vinci [DG]
-			'IndicateurAchat' => 'RSI' // Less selective than RSI&Stoch
+			'IndicateurAchat' => 'CCI&SignalMACD|RSI&CCI' // Less selective than RSI&Stoch
 			),
 		'FR0000130452' => array( // Eiffage [FGR]
-			'IndicateurAchat' => 'RSI' // Idem vinci
+			'IndicateurAchat' => 'RSI|CCI&SignalMACD' // Idem vinci
 			),
 		'FR0000120321' => array( // L'Oreal [OR]
-			'IndicateurAchat' => 'RSI&Williams'  //RSI + williams fait mieux que RSI+Stoch
+			'IndicateurAchat' => 'RSI&Williams|RSI&CCI|CCI&SignalMACD'  //RSI + williams fait mieux que RSI+Stoch
 			),
 		'FR0000127771' => array( // Vivendi [VIV]
 			'IndicateurAchat' => array() // Aucun achat automatique
@@ -171,34 +171,34 @@ class TradingBot
 			'IndicateurAchat' => array() // Aucun
 			),
 		'FR0000120644' => array( // Danone [BN]
-			'IndicateurAchat' => 'RSI' //|RSI&LongStochastic|RSI&Stochastic
+			'IndicateurAchat' => 'RSI|CCI&SignalMACD' //|RSI&CCI|RSI&LongStochastic|RSI&Stochastic
 			),
 		'FR0000120693' => array( // Pernod Ricard [RI]
-			'IndicateurAchat' => 'RSI&LongStochastic' //RSI&Stoch or RSI
+			'IndicateurAchat' => 'RSI&LongStochastic|RSI&CCI' //RSI&Stoch or RSI
 			),
 		'FR0000121667' => array( // Essilor [EI]
-			'IndicateurAchat' => 'RSI&Williams',
+			'IndicateurAchat' => 'RSI&Williams|CCI&RSI',
 			),
 		'FR0000120578' => array( // Sanofi [SAN]
-			'IndicateurAchat' => array() // Aucun
+			'IndicateurAchat' => 'CCI&SignalMACD' // Aucun
 			),
 		'FR0000125585' => array( // Casino [CO]
-			'IndicateurAchat' => 'RSI&LongStochastic|RSI&Stochastic&Williams' //|RSI&Stochastic
+			'IndicateurAchat' => 'RSI&LongStochastic|RSI&Stochastic&Williams|CCI&SignalMACD' //|RSI&Stochastic
 			),
 		'FR0000120172' => array( // Carrefour [CA]
-			'IndicateurAchat' => array() // aucun
+			'IndicateurAchat' => array() // aucun aucun
 			),
 		'FR0000120628' => array( // Axa [CS]
-			'IndicateurAchat' => array() // Aucun
+			'IndicateurAchat' => array() // Aucun aucun
 			),
 		'FR0000120222' => array( // CNP Assurances [CNP]
-			'IndicateurAchat' => array() // Aucun
+			'IndicateurAchat' => 'SignalMACD&CCI' // Aucun
 			),
 		'FR0000121485' => array( // Kering [KER]
-			'IndicateurAchat' => array() // Aucun car RSI+Stoch sous performe.
+			'IndicateurAchat' => 'SignalMACD&CCI' // Le seul qui semble performer a 20% sur ce titre.
 			),
 		'FR0004035913' => array( // Iliad [ILD]
-			'IndicateurAchat' => 'RSI&LongStochastic'
+			'IndicateurAchat' => 'RSI&LongStochastic|RSI&CCI'
 			),
 		'FR0000133308' => array( // Orange [ORA]
 			'IndicateurAchat' => 'RSI'
