@@ -155,7 +155,7 @@ class TradingBot
 			'IndicateurAchat' => 'SignalMACD&CCI' // Aucun, ou RSI+LongSto
 			),
 		'FR0000125486' => array( // Vinci [DG]
-			'IndicateurAchat' => 'CCI&SignalMACD|RSI&CCI' // Less selective than RSI&Stoch
+			'IndicateurAchat' => 'CCI&SignalMACD|RSI&CCI&VolumesOscillator' // Less selective than RSI&Stoch
 			),
 		'FR0000130452' => array( // Eiffage [FGR]
 			'IndicateurAchat' => 'RSI|CCI&SignalMACD' // Idem vinci
@@ -164,7 +164,7 @@ class TradingBot
 			'IndicateurAchat' => 'RSI&Williams|RSI&CCI|CCI&SignalMACD'  //RSI + williams fait mieux que RSI+Stoch
 			),
 		'FR0000127771' => array( // Vivendi [VIV]
-			'IndicateurAchat' => array() // Aucun achat automatique
+			'IndicateurAchat' => 'SignalMACD&VolumeOscillator' // 25|18|11
 			),
 		'FR0000130213' => array( // Lagardere [MMB]
 			'IndicateurAchat' => 'RSI&LongStochastic' //|RSI&Stochastic
@@ -214,6 +214,12 @@ class TradingBot
 // 		'FR0000121261' => array( // Michelin [ML]
 // 			'IndicateurAchat' => 'RSI&Stochastic' // defaults
 // 			),
+		'FR0010112524' => array( // Nexity
+			'IndicateurAchat' => 'RSI&Stochastic|RSI&VolumesOscillator'
+			),
+		'FR0000124141' => array( // Veolia Environnement
+			'IndicateurAchat' => 'RSI&VolumesOscillator'
+			),
 		
 		);
 	protected $Watchlist = array();

@@ -589,7 +589,7 @@ class StockAnalysis
 		
 	}
 	
-	public function Volatilité($period = 200)
+	public function Volatility($period = 200)
 	{
 // 		$vol = trader_var(array_slice($this->cache, $period *-1), $period);
 // // 		return end($vol);
@@ -874,10 +874,15 @@ class StockAnalysis
 // 			? 1
 // 			: -1;
 	}
-	
 	public function LongVolumes()
 	{
 		return $this->Volumes(14,28);
+	}
+	public function VolumesOscillator($short=5, $long=20)
+	{
+		return $this->Volumes($short,$long) <1 ? -1 : 1;
+		$mean = array_sum(array_slice($this->buildData('Volume'), $period*-1))/$period;
+		return round(( end($this->buildData('Volume')) - $mean ) / $mean, 3);
 	}
 	
 	public function Candle()
@@ -987,7 +992,7 @@ class StockAnalysis
 		return (int)( $re/100 );
 	}
 	
-	public function CCI($period = 14)
+	public function CCI($period = 14) // Commodity Channel Index
 	{
 		$cci = trader_cci(
 			array_slice($this->buildData('High'), $period*-2),
@@ -999,6 +1004,7 @@ class StockAnalysis
 		if(end($cci) <100 && prev($cci)>100) // cross CCI a la baisse ..
 			return -1;
 		return 0;
+		//TODO : Interpret Divergences
 	}
 	
 	// Results seems weird...
