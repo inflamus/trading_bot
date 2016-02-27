@@ -109,6 +109,8 @@ class TradingHistory
 
 class TradingBot
 {
+	const VERBOSE = true; //Verbosity, true or false;
+
 	const SOMME_MINIMALE = '1000 €';
 	const FRAIS_BOURSIERS = '0.9%';
 	// Vente auto
@@ -218,13 +220,13 @@ class TradingBot
 
 	private $DB = null;
 	private $CM = null;
-	private $Stock = null;
+// 	private $Stock = null;
 	
 // 	public function __construct(CreditMutuel $CM, Stock $Stock)
-	public function __construct(CreditMutuel $CM, $Stock = null)
+	public function __construct(CreditMutuel $CM)
 	{
 		$this->CM = $CM;
-		$this->Stock = $Stock;
+// 		$this->Stock = $Stock;
 		$DB = $this->DB = new TradingHistory();
 		return $this;
 	}
@@ -250,7 +252,7 @@ class TradingBot
 	public function IsinParams($isin, $key, $val)
 	{
 		if(!$this->CM->isISIN($isin))
-			throw new Exception('Wrong ISIN '.$isin);
+			throw new Exception('Wrong ISIN ['.$isin.']');
 		$this->ByISINParams[$isin][$key] = $val;
 		return $this;
 	}
@@ -294,24 +296,28 @@ class TradingBot
 	const DAILYCHECKUP_BOTH = 0x3;
 	public function DailyCheckup($mode = self::DAILYCHECKUP_BOTH)
 	{
-		foreach($this->CM->Valorisation() as $stock)
-		{
-			$this->Valorisation[$stock->isin] = $stock;
-			$this->curr = $stock->isin;
-// 			print (string)$stock . "\n";
-// 			print $stock->PlusvaluePCT . "\n";
-			
-			if($mode & self::DAILYCHECKUP_VENTE && $this->StopLoss)
-				// Placer des ordres Stops si position favorable, selon la Seuil_policy
-				$this->Seuils($stock);
-			
-		}
+		if(self::VERBOSE)
+			print "Daily Tasks starting...\n\n";
+		if($mode & self::DAILYCHECKUP_VENTE)
+			foreach($this->CM->Valorisation() as $stock)
+			{
+				$this->Valorisation[$stock->isin] = $stock;
+				$this->curr = $stock->isin;
+				if(self::VERBOSE)
+					print (string)$stock . ' ('.$stock->PlusvaluePCT . ")\n";
+				
+				if($this->StopLoss)
+					// Placer des ordres Stops si position favorable, selon la Seuil_policy
+					$this->Seuils($stock);
+				
+			}
 		if($mode & self::DAILYCHECKUP_ACHAT)
 			foreach($this->Watchlist as $isin => $watch)
 			{
 				$this->curr = $isin;
 				try{
-					print $this->curr;
+					if(self::VERBOSE)
+						print "\n".$this->curr ." Recherche d'indicateurs à l'achat :";
 					$this->Achats($watch);
 				}catch(Exception $e)
 				{
@@ -329,15 +335,28 @@ class TradingBot
 		$ind = $this->IndSplit($this->IndicateurAchat);
 // 		print_r($ind);
 		if(empty($ind))
+		{
+			print "Aucun indicateur n'a été spécifié.";
 			return $this; // Si aucun indicateur n'est spécifié, abort.
+		}
 		foreach($ind as $ou)
 		{
-// 			print ' '.$stock->stock.' '.implode('&',$ou)."\n";
+			if(self::VERBOSE)
+				print "\n".' '.$stock->stock.' '.implode('&',$ou)." :";
 			foreach($ou as $func) //required func
 				if($stock->Analysis()->$func() <= 0)
+				{
+					if(self::VERBOSE)
+						print '  '.$func.' negatif, aborting.';
 					continue 2; // Passe au second indicateur si le premier rétorque faux.
+				}
+				else
+					if(self::VERBOSE)
+						print '  '.$func.' positif';
 			// La combinaison d'indicateur donne un signal d'achat.
 // 			return $sens == 1 ? $this->OrdreAchat($stock) : $this->OrdreVente($stock);
+			if(self::VERBOSE)
+				print ' => Signal d\'achat !'."\n";
 			return $this->OrdreAchat($stock, $isin);
 			break;
 		}
@@ -348,10 +367,13 @@ class TradingBot
 // 		foreach($this->Valorisation() as $valeur)
 		if(array_key_exists($isin, $this->Valorisation))
 			//La valeur à acheter est déja dans le portefeuille,
-				if((float)$this->Valorisation[$isin]->ValueInEur >= (float)$this->ValorisationMax)
-					throw new Exception('Valorisation maximale pour '.(string)$valeur.' est atteinte à '.$this->Valorisation[$isin]->ValueInEur);
+			if((float)$this->Valorisation[$isin]->ValueInEur >= (float)$this->ValorisationMax)
+				throw new Exception('Valorisation maximale pour '.(string)$valeur.' est atteinte à '.$this->Valorisation[$isin]->ValueInEur);
 		$nominal = ceil($this->SommeMinimale / $stock->getLast());
-		print 'ACHAT '.$nominal.' '.$stock->stock.' ['.$isin.'] au dernier cours ('.$stock->getLast().'€)'."\n";
+		
+		if(self::VERBOSE)
+			print 'ACHAT '.$nominal.' '.$stock->stock.' ['.$isin.'] au dernier cours ('.$stock->getLast().'€)'."\n";
+			
 		return $this;
 		$this->CM->Ordre($isin)->Achat($nominal)->AuDernierCours()->Jour()->Exec();
 	}
@@ -435,8 +457,8 @@ class TradingBot
 						->Hebdomadaire($this->SeuilExpireWeeks)
 						->Exec()
 						;
-
-					print 'ADDING ORDER '.$stock->isin.' : '.$seuils[$i][1].' * seuil = '.$seuils[$i][0].', expire '.$this->SeuilExpireWeeks ." week\n";
+					if(self::VERBOSE)
+						print 'ADDING ORDER '.$stock->isin.' : '.$seuils[$i][1].' * seuil = '.$seuils[$i][0].', expire '.$this->SeuilExpireWeeks ." week\n";
 					$this->DB->AddOrder('Vente',
 						$dat, 
 						array(
@@ -450,7 +472,8 @@ class TradingBot
 			}while(++$i < $nbSeuilsAFaire);
 		}
 		else
-			print ' Position perdante, pas de vente pour le moment car pas de vente à perte.'."\n";
+			if(self::VERBOSE) 
+				print ' Position perdante, pas de vente pour le moment car pas de vente à perte.'."\n";
 	}
 	
 	private function Step($nseuil)

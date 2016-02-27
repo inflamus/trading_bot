@@ -269,10 +269,11 @@ class Stock extends StockCache implements Iterator
 		
 		if(parent::_isCached($stockid) && parent::CACHE)
 			$this->data = parent::_unserialize($stockid);
-			
-		end($this->data);
-		if(key($this->data) == date('Y-m-d'))
-			return $this; // if already fetched, only use cache.
+		
+		// Removed, may be unstraight
+// 		end($this->data);
+// 		if(key($this->data) == date('Y-m-d'))
+// 			return $this; // if already fetched, only use cache.
 		
 		// else, fecth from provider
 		if(!$this->Period($period)->isStock())
