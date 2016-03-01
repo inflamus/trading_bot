@@ -303,6 +303,7 @@ class Stock extends StockCache implements Iterator
 	{
 		if(parent::CACHE && $this->provider->isCachable())
 			parent::_serialize($this->stock, $this->data);
+		unset($this->stock,$this->data,$this->provider); // Free memory
 		return true;
 	}
 	
@@ -484,6 +485,10 @@ class StockAnalysis
 		$this->cache = $this->buildData($closeVal);
 // 		$this->data->AdjustedClose = array_map(function($i){return $i[5];}, $stock->data);
 // 		return var_dump(trader_macd($stock, 12, 26, 9));
+	}
+	public function __destruct()
+	{
+		unset($this->buildCache, $this->cache, $this->stock);
 	}
 	
 	private $buildCache = array();
@@ -883,6 +888,10 @@ class StockAnalysis
 		return $this->Volumes($short,$long) <1 ? -1 : 1;
 		$mean = array_sum(array_slice($this->buildData('Volume'), $period*-1))/$period;
 		return round(( end($this->buildData('Volume')) - $mean ) / $mean, 3);
+	}
+	public function VolumeOscillator($short = 5,$long=20)
+	{
+		return $this->VolumesOscillator($short,$long);
 	}
 	
 	public function Candle()

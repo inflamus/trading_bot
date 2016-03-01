@@ -37,14 +37,24 @@ class StockInd
 		return false;
 	}
 	
+	public function searchMnemo($isin)
+	{
+		return $this->Mnem[$isin];
+	}
+	
+	public function searchLabel($isin)
+	{
+		return $this->Lib[$isin];
+	}
+	
 	public static function registerInstance($instance)
 	{
-		return $GLOBALS['STOCKSIND_INSTANCE'] = $instance;
+		return $GLOBALS[__CLASS__ . 'INSTANCE'] = $instance;
 	}
 	public static function getInstance()
 	{
-		if(isset($GLOBALS['STOCKSIND_INSTANCE']))
-			return $GLOBALS['STOCKSIND_INSTANCE'];
+		if(isset($GLOBALS[__CLASS__ . 'INSTANCE']))
+			return $GLOBALS[__CLASS__ . 'INSTANCE'];
 		else 
 			return self::registerInstance(new self());
 	}

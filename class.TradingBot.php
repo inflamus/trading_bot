@@ -68,7 +68,7 @@ class TradingHistory
 		return false;
 	}
 	
-	public function AddOrder($sens, OrdreEnCours $Ordre, $AdditionalData = array())
+	public function AddOrder($sens, _OrdreEnCours $Ordre, $AdditionalData = array())
 	{
 		$this->data[$Ordre->IsinCode][$sens][] = array_merge(
 			array('Ordre' => $Ordre),
@@ -109,7 +109,7 @@ class TradingHistory
 
 class TradingBot
 {
-	const VERBOSE = true; //Verbosity, true or false;
+	const VERBOSE = false; //Verbosity, true or false;
 
 	const SOMME_MINIMALE = '1000 €';
 	const FRAIS_BOURSIERS = '0.9%';
@@ -146,25 +146,25 @@ class TradingBot
 		*/
 		// Adjusted params from a quick study https://docs.google.com/spreadsheets/d/1ekQSj2Y0468rR16UQAm1m702RulnPcs4Bcezd-N98wI/edit
 		'FR0000120073' => array( // Air Liquide [AI]
-			'IndicateurAchat' => 'RSI&LongStochastic' //|RSI&Stochastic specific buy signal
+			'IndicateurAchat' => 'RSI&LongStochastic|SignalMACD&CCI&VolumesOscillator' //|RSI&Stochastic specific buy signal
 			),
 		'BE0003470755' => array( // Solvay [SOLB]
 			'IndicateurAchat' => array() // Aucun Indicateur significativement meilleur à l'achat.
 			),
 		'FR0010307819' => array( // Legrand [LR]
-			'IndicateurAchat' => 'SignalMACD&CCI' // Aucun, ou RSI+LongSto
+			'IndicateurAchat' => array(), // 'SignalMACD&CCI' 
 			),
 		'FR0000125486' => array( // Vinci [DG]
 			'IndicateurAchat' => 'CCI&SignalMACD|RSI&CCI&VolumesOscillator' // Less selective than RSI&Stoch
 			),
 		'FR0000130452' => array( // Eiffage [FGR]
-			'IndicateurAchat' => 'RSI|CCI&SignalMACD' // Idem vinci
+			'IndicateurAchat' => 'RSI&VolumesOscillator|CCI&SignalMACD' // Idem vinci
 			),
 		'FR0000120321' => array( // L'Oreal [OR]
 			'IndicateurAchat' => 'RSI&Williams|RSI&CCI|CCI&SignalMACD'  //RSI + williams fait mieux que RSI+Stoch
 			),
 		'FR0000127771' => array( // Vivendi [VIV]
-			'IndicateurAchat' => 'SignalMACD&VolumeOscillator' // 25|18|11
+			'IndicateurAchat' => 'SignalMACD&VolumesOscillator' // 25|18|11, les performances se trouvent dans le dividende...
 			),
 		'FR0000130213' => array( // Lagardere [MMB]
 			'IndicateurAchat' => 'RSI&LongStochastic' //|RSI&Stochastic
@@ -182,7 +182,7 @@ class TradingBot
 			'IndicateurAchat' => 'RSI&Williams|CCI&RSI',
 			),
 		'FR0000120578' => array( // Sanofi [SAN]
-			'IndicateurAchat' => 'CCI&SignalMACD' // Aucun
+			'IndicateurAchat' => 'CCI&SignalMACD&VolumesOscillator' // Aucun
 			),
 		'FR0000125585' => array( // Casino [CO]
 			'IndicateurAchat' => 'RSI&LongStochastic|RSI&Stochastic&Williams|CCI&SignalMACD' //|RSI&Stochastic
@@ -194,33 +194,87 @@ class TradingBot
 			'IndicateurAchat' => array() // Aucun aucun
 			),
 		'FR0000120222' => array( // CNP Assurances [CNP]
-			'IndicateurAchat' => 'SignalMACD&CCI' // Aucun
+			'IndicateurAchat' => 'SignalMACD&CCI|SignalMACD&VolumesOscillator' // Aucun
 			),
 		'FR0000121485' => array( // Kering [KER]
 			'IndicateurAchat' => 'SignalMACD&CCI' // Le seul qui semble performer a 20% sur ce titre.
 			),
 		'FR0004035913' => array( // Iliad [ILD]
-			'IndicateurAchat' => 'RSI&LongStochastic|RSI&CCI'
+			'IndicateurAchat' => 'RSI&LongStochastic|RSI&CCI&VolumesOscillator'
 			),
 		'FR0000133308' => array( // Orange [ORA]
-			'IndicateurAchat' => 'RSI'
+			'IndicateurAchat' => 'RSI&VolumesOscillator'
 			),
 // 		'FR0000121501' => array( // Peugeot [UG]
 // 			'IndicateurAchat' => 'RSI&Stochastic' //Defaults
 // 			),
 		'FR0000124570' => array( // Plastic Ominum [POM]
-			'IndicateurAchat' => 'RSI&LongStochastic&Williams|RSI&LongStochastic' //|RSI&Stochastic
+			'IndicateurAchat' => 'RSI&LongStochastic&Williams|RSI&LongStochastic|CCI&RSI&VolumesOscillator' //|RSI&Stochastic
 			),
-// 		'FR0000121261' => array( // Michelin [ML]
-// 			'IndicateurAchat' => 'RSI&Stochastic' // defaults
-// 			),
-		'FR0010112524' => array( // Nexity
+		'FR0000121261' => array( // Michelin [ML]
+			'IndicateurAchat' => 'RSI&Stochastic|SignalMACD&CCI&VolumesOscillator' // defaults
+			),
+		'FR0010112524' => array( // Nexity NXI
 			'IndicateurAchat' => 'RSI&Stochastic|RSI&VolumesOscillator'
 			),
-		'FR0000124141' => array( // Veolia Environnement
-			'IndicateurAchat' => 'RSI&VolumesOscillator'
+		'FR0000124141' => array( // Veolia Environnement VIE
+			'IndicateurAchat' => 'RSI&VolumesOscillator' //|RSI&CCI&VolumesOscillator
 			),
-		
+		'FR0000120404' => array( // Accor Hotels AC
+			'IndicateurAchat' => 'CCI&RSI&VolumesOscillator'
+			),
+		'NL0000235190' => array( // Airbus AIR
+			'IndicateurAchat' => 'CCI&RSI&VolumesOscillator'
+			),
+		'FR0010220475' => array( // Alstom ALO
+			'IndicateurAchat' => array(),
+			),
+		'FR0000121964' => array( // Klepierre LI
+			'IndicateurAchat' => array(),
+			),
+		'FR0010208488' => array( // Engie ENGI
+			'IndicateurAchat' => 'CCI&RSI&VolumesOscillator'
+			),
+		'FR0000130577' => array( // Publicis PUB
+			'IndicateurAchat' => array(),
+			),
+		'FR0000131906' => array( // Renault RNO
+			'IndicateurAchat' => 'RSI&Stochastic|CCI&RSI&VolumesOscillator'
+			),
+		'FR0000121972' => array( // Schneider Electric SU
+			'IndicateurAchat' => array(),
+			),
+// 		'FR0000131708' => array( // Tecnip TEC
+// 			'IndicateurAchat' => 'RSI&Stochastic'
+// 			),
+		'FR0000124711' => array( // Unibail Rodamco UL
+			'IndicateurAchat' => array(),
+			),
+		'FR0000130338' => array( // Valeo FR
+			'IndicateurAchat' => array(),
+			),
+		'CH0012214059' => array( // Lafarge LHN
+			'IndicateurAchat' => array(),
+			),
+// 		'FR0000073272' => array( // Safran SAF
+// 			'IndicateurAchat' => 'RSI&Stochastic'
+// 			),
+// 		'FR0000130403' => array( // Christian Dior CDI
+// 			'IndicateurAchat' => 'RSI&Stochastic'
+// 			),
+// 		'FR0000120503' => array( // Bouygues EN
+// 			'IndicateurAchat' => 'RSI&Stochastic'
+// 			),
+// 		'FR0000121014' => array( // LVMH MC
+// 			'IndicateurAchat' => 'RSI&Stochastic'
+// 			),
+// 		'FR0011594233' => array( // Numéricable NUM
+// 			'IndicateurAchat' => 'RSI&Stochastic'
+// 			),
+// 		'FR0000031122' => array( // Air France - KLM AF
+// 			'IndicateurAchat' => 'RSI&Stochastic'
+// 			),
+		// Le reste est par défaut RSI&Stochastic
 		);
 	protected $Watchlist = array();
 
@@ -228,8 +282,7 @@ class TradingBot
 	private $CM = null;
 // 	private $Stock = null;
 	
-// 	public function __construct(CreditMutuel $CM, Stock $Stock)
-	public function __construct(CreditMutuel $CM)
+	public function __construct(Broker $CM)
 	{
 		$this->CM = $CM;
 // 		$this->Stock = $Stock;
@@ -342,7 +395,8 @@ class TradingBot
 // 		print_r($ind);
 		if(empty($ind))
 		{
-			print "Aucun indicateur n'a été spécifié.";
+			if(self::VERBOSE)
+				print "Aucun indicateur n'a été spécifié.";
 			return $this; // Si aucun indicateur n'est spécifié, abort.
 		}
 		foreach($ind as $ou)
@@ -367,25 +421,28 @@ class TradingBot
 			break;
 		}
 	}
-	
 	private function OrdreAchat(Stock $stock, $isin)
 	{
 // 		foreach($this->Valorisation() as $valeur)
 		if(array_key_exists($isin, $this->Valorisation))
 			//La valeur à acheter est déja dans le portefeuille,
 			if((float)$this->Valorisation[$isin]->ValueInEur >= (float)$this->ValorisationMax)
-				throw new Exception('Valorisation maximale pour '.(string)$valeur.' est atteinte à '.$this->Valorisation[$isin]->ValueInEur);
-		$nominal = ceil($this->SommeMinimale / $stock->getLast());
+				throw new Exception('Valorisation maximale pour '.(string)$this->Valorisation[$isin].' est atteinte à '.$this->Valorisation[$isin]->ValueInEur);
+		$nominal = ceil((float)$this->SommeMinimale / (float)$stock->getLast());
 		
 		if(self::VERBOSE)
 			print 'ACHAT '.$nominal.' '.$stock->stock.' ['.$isin.'] au dernier cours ('.$stock->getLast().'€)'."\n";
 			
+		$this->CM->Ordre($isin)->Achat($nominal)
+		->AuDernierCours($stock->getLast()) // pass this arg for simulator compatibility
+// 		->ACoursLimite($stock->getLast()) // For Simulator
+		->Jour()->Exec();
 		return $this;
-		$this->CM->Ordre($isin)->Achat($nominal)->AuDernierCours()->Jour()->Exec();
 	}
 	
 	private function Seuils(Action $stock)
 	{
+// 		print $stock->PlusvaluePCT . $this->BeneficeMinimal . $this->FraisBoursiers;
 		if((float)$stock->PlusvaluePCT > (float)$this->BeneficeMinimal+(float)$this->FraisBoursiers) // Gain supérieur à 5% depuis le prix de revient, comprenant les frais boursiers.
 		{
 			// En position de mettre un ou des seuil(s) --
@@ -496,5 +553,11 @@ class TradingBot
 		return (float)$cours * (100 - (float)$pct + (float)$this->FraisBoursiers)/100;
 	}
 
+	public function __destruct()
+	{
+		foreach(get_object_vars($this) as $t)
+			unset($t);
+	}
 // 	public function NouveauSeuil(
 }
+

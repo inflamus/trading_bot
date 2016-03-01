@@ -13,6 +13,270 @@
 	Note : please verify that the "date.timezone" parameter is fulfilled in your php.ini
 */
 
+interface Broker
+{
+	public function isISIN(&$i);
+	public function Valorisation($getraw = false);
+}
+interface _OrdreEnCours 
+{
+}
+class SimulatorAccount
+{
+	const BROKER_FEE = '0.9%';
+	protected 	$cash = 0,
+				$portefeuille = array(/* Isin => [qte, cours_d'achat, cours_actuel] */),
+				$ordres = array(/* Rref => array('sens' => 'achat', 'isin', 'qte', 'cours')*/);
+	private 	$slicestart = -600, $slicelength = 100;
+	private		$stockCache = array();
+	public function __construct()
+	{
+		return $this;
+	}
+	
+	private function getStock($isin)
+	{
+		if(!isset($this->stockCache[$isin][$this->slicelength]))
+		{
+			$stock = new Stock(StockInd::getInstance()->searchMnemo($isin).'.PA', 'd', Stock::PROVIDER_CACHE);
+			return $this->stockCache[$isin][$this->slicelength] = $stock->Slice($this->slicestart, $this->slicelength);
+		}
+		else
+			return $this->stockCache[$isin][$this->slicelength];
+	}
+	public function Start($start)
+	{
+		$this->slicestart = -1*($start+100);
+		return $this;
+	}
+	public function NewDay($today=1)
+	{
+		$this->slicelength += $today;
+// 		print_r($this->ordres);
+// 		print $this->slicelength;
+		if(!empty($this->portefeuille))
+			print_r($this->portefeuille);
+		$this
+			->checkOrders()
+			->reloadPortfolio();
+// 		print $this->cash;
+		return $this;
+	}
+	private function reloadPortfolio()
+	{
+		foreach($this->portefeuille as $isin => $d)
+		{
+			$s = $this->getStock($isin)->getLast();
+			$this->portefeuille[$isin]['DernierCours'] = $s;
+			$this->portefeuille[$isin]['PlusvaluePCT'] = round(($s-$this->portefeuille[$isin]['c_achat'])/ $this->portefeuille[$isin]['c_achat'], 2)*100 .'%';
+			$this->portefeuille[$isin]['ValueInEur'] = $s * $this->portefeuille[$isin]['qte'];
+		}
+		return $this;
+	}
+	private function checkOrders()
+	{
+		foreach($this->ordres as $ref => $d)
+		{
+			if($d['expire'] < $this->slicelength)
+			{
+				$this->removeOrder($ref);
+				continue;
+			}
+			$s = $this->getStock($d['isin'])->getLast();
+// 			print 'Cours actuel : '.$s.' plus bas :'.$this->getStock($d['isin'])->getLast('Low');
+			if($d['sens'] >0) // Achat
+			{
+				if(isset($d['cours']) && $d['cours'] <= $this->getStock($d['isin'])->getLast('Low')) // Cours limité, le cours est supérieur
+					continue;
+				else
+					$s = $d['cours'];
+				$somme = round($d['qte']*$s*(1+(float)self::BROKER_FEE/100), 2);
+// 				print 'pour une somme = '.$somme;
+// 				print $this->cash - $somme;
+				if($this->cash < $somme)
+				{
+// 					print (float)$this->cash . '<' .$somme;
+					print 'Pas assez de cash.';
+					$this->removeOrder($ref);
+					continue;
+				}
+				$this->Withdraw($somme);
+				if(!isset($this->portefeuille[$d['isin']]))
+					$this->portefeuille[$d['isin']] = array('qte'=>0,'c_achat'=>$s);
+				$this->portefeuille[$d['isin']]['c_achat'] = ($this->portefeuille[$d['isin']]['c_achat']*
+					$this->portefeuille[$d['isin']]['qte']+$s*$d['qte'])/($d['qte']+$this->portefeuille[$d['isin']]['qte']);
+				$this->portefeuille[$d['isin']]['qte'] += $d['qte'];
+				$this->portefeuille[$d['isin']]['stock'] = StockInd::getInstance()->searchLabel($d['isin']);
+				$this->portefeuille[$d['isin']]['isin'] = $d['isin'];
+				print "\n".' => Ordre Achat passé sur ['.$this->portefeuille[$d['isin']]['stock'].'] x '.$d['qte'].' pour un total de = '.$somme.'€'."\n";
+				$this->removeOrder($ref);
+			}
+			else
+			{ //vente
+				if(isset($d['cours']) && $d['cours'] > $this->getStock($d['isin'])->getLast('High')) // cours limité non requis
+					continue;
+				elseif(isset($d['cours']))
+					$s = $d['cours'];
+				if(isset($d['seuil']) && $d['seuil'] < $this->getStock($d['isin'])->getLast('Low')) // le seuil n'est pas passé.
+					continue;
+				else
+					$s = $d['seuil'];
+// 				print_r( $d );
+				//Ordre de vente passé
+				$somme = $d['qte'] * $s * (1-(float)self::BROKER_FEE/100);
+				$this->Deposit($somme);
+				$this->portefeuille[$d['isin']]['qte'] -= $d['qte']; //TODO ontice
+				print "\n".' => Ordre de Vente passé sur ['.$this->portefeuille[$d['isin']]['stock'].'] x '.$d['qte'].' pour un total de = '.$somme.'€'."\n";
+				if($this->portefeuille[$d['isin']]['qte'] <= 0)
+					unset($this->portefeuille[$d['isin']]);
+				$this->removeOrder($ref);
+			}
+		}
+		return $this;
+	}
+	public function removeOrder($ref)
+	{
+		unset($this->ordres[$ref]);
+		return $this;
+	}
+	public function addOrder($data)
+	{
+// 		print 'Receiving order ... '.print_r($data, true);
+		$lim = $seuil = null;
+		extract($data);
+		$ref = uniqid();
+		$this->ordres[$ref] = array(
+			'isin' => $isin,
+			'sens' => (int)$sens,
+			'qte' => (int)$qte);
+		if($lim != null)
+			$this->ordres[$ref]['cours'] = (float)$lim;
+		if($seuil != null)
+			$this->ordres[$ref]['seuil'] = (float)$seuil;
+		$this->ordres[$ref]['expire'] = $this->slicelength +1;
+		return $ref;
+	}
+	
+	public function Valorisation()
+	{
+// 		print_r((object) $this->portefeuille);
+// 		return json_decode(json_encode($this->portefeuille), false);
+// <security isincode="DE0007236101" tradingplace="044" flagsrd="0" nominal="+2000" lastquote="+92.700EUR" daybeforevariation="-0.39%" unitcostprice="+2.0000EUR" valueineur="+185400.00EUR" valueinprct="+0.25%" gainlostvalueineur="+181400.00EUR" gainlostprct="+4535.00%" form="Au porteur" depositplace="USA" lastoperationdate="20110107" flagbuy="0" flagsell="0" positionsrd="0">SIEMENS</security>
+		return $this->portefeuille;
+	}
+	
+	public function Withdraw($cash)
+	{
+		$this->cash -= (int)$cash;
+		return $this;
+	}
+	public function Deposit($cash)
+	{
+		$this->cash += (int)$cash;
+		return $this;
+	}
+
+	public function __toString()
+	{
+		return $this->cash.'€'.print_r($this->portefeuille, true);
+	}
+	public static function getInstance()
+	{
+		if(isset($GLOBALS[__CLASS__]))	return $GLOBALS[__CLASS__];
+		else	return $GLOBALS[__CLASS__] = new self();
+	}
+}
+
+class Simulator implements Broker
+{
+	private $s = null;
+	public function __construct(SimulatorAccount $sim)
+	{
+		$this->s = $sim;
+	}
+	public function isISIN(&$i)
+	{
+		return CreditMutuel::isISIN($i);
+	}
+	public function Valorisation($getraw = false)
+	{
+// 		return $this;
+		$re = array();
+		foreach($this->s->Valorisation() as $isin => $d)
+		{
+			$re[] = new Action($this, new SimpleXMLElement('<security IsinCode="'.$d['isin'].'" Nominal="'.$d['qte'].'" TradingPlace="024" GainLostPrct="'.$d['PlusvaluePCT'].'" LastQuote="'.$d['DernierCours'].'" ValueInEur="'.$d['ValueInEur'].'">'.$d['stock'].'</security>'));
+		}
+		return $re;
+	}
+	public function Ordre($isin)
+	{
+		return new OrdreSimulator($isin);
+	}
+}
+
+class OrdreSimulator implements _OrdreEnCours
+{//$this->CM->Ordre($isin)->Achat($nominal)->AuDernierCours()->Jour()->Exec();
+	private $data = array();
+	public function __construct($isin)
+	{
+		$this->isin = $isin;
+		$this->IsinCode = $isin;
+	}
+	public function __get($n)
+	{
+		return $this->data[$n];
+	}
+	public function __set($n, $v)
+	{
+		$this->data[$n] = $v;
+		return true;
+	}
+	public function __call($n,$v)
+	{
+		return $this;
+	}
+	public function Achat($qte)
+	{
+		$this->sens = 1;
+		$this->qte = $qte;
+		return $this;
+	}
+	public function Vendre($qte)
+	{
+		$this->sens = -1;
+		$this->qte = $qte;
+		return $this;
+	}
+	public function ASeuil($seuil)
+	{
+		$this->seuil = $seuil;
+		return $this;
+	}
+	public function ACoursLimite($lim)
+	{
+		$this->lim = $lim;
+		return $this;
+	}
+	public function AuDernierCours($lim)
+	{
+		return $this->AcoursLimite($lim);
+	}
+	public function Exec()
+	{
+		$this->ref = SimulatorAccount::getInstance()->addOrder($this->data);
+		return $this;
+	}
+	public function Delete()
+	{
+		SimulatorAccount::getInstance()->removeOrder($this->ref);
+		return $this;
+	}
+	public function __destruct()
+	{
+		unset($this->data);
+	}
+}
+
 class Webservice
 {
 	protected $Headers = array();
@@ -146,7 +410,7 @@ class Webservice
 	}
 }
 
-class CreditMutuel extends Webservice
+class CreditMutuel extends Webservice implements Broker
 {
 
 	const URL = 'https://mobile.creditmutuel.fr/wsmobile/fr';
@@ -407,7 +671,7 @@ class Action extends CreditMutuel
 {
 	public $V = null;
 	private $C = null;
-	public function __construct(CreditMutuel $C, $isin, $nom = '')
+	public function __construct(Broker $C, $isin, $nom = '')
 	{
 // 		print_r($isin->attributes());
 		$this->C = $C;
@@ -518,12 +782,12 @@ class AccountDetails extends CreditMutuel
 	
 }*/
 
-class OrdreEnCours extends CreditMutuel
+class OrdreEnCours extends CreditMutuel implements _OrdreEnCours
 {
 	private $O = null;
 	private $C = null;
 	private $Action = null;
-	public function __construct(CreditMutuel $C, SimpleXMLElement $t)
+	public function __construct(Broker $C, SimpleXMLElement $t)
 	{
 		$this->C = $C;
 		$this->O = $t;
@@ -531,7 +795,7 @@ class OrdreEnCours extends CreditMutuel
 		return $this;
 	}
 	
-	public static function NewOrder(CreditMutuel $C, $ref, $isin=null, $nom = null)
+	public static function NewOrder(Broker $C, $ref, $isin=null, $nom = null)
 	{
 		$a = new SimpleXMLElement('<root></root>');
 		if($ref instanceof SimpleXMLElement)
