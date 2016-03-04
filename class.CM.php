@@ -38,7 +38,14 @@ class SimulatorAccount
 	{
 		if(!isset($this->stockCache[$this->slicelength][$isin]))
 		{
-			$stock = new Stock(StockInd::getInstance()->searchMnemo($isin).'.PA', 'd', Stock::PROVIDER_CACHE);
+			$mn = StockInd::getInstance()->searchMnemo($isin);
+			if($mn == 'SOLB')
+				$mn .= '.BR';
+			elseif($mn == 'APAM')
+				$mn .= '.AS';
+			else
+				$mn .= '.PA';
+			$stock = new Stock(, 'd', Stock::PROVIDER_CACHE);
 			return $this->stockCache[$this->slicelength][$isin] = $stock->Slice($this->slicestart, $this->slicelength);
 		}
 		else
