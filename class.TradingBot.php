@@ -110,6 +110,7 @@ class TradingHistory
 class TradingBot
 {
 	const VERBOSE = false; //Verbosity, true or false;
+	const EXTERNAL_INDICATORS = 'TradingBotIndicators.php'; // The PHP file containing the trading indicators.
 
 	const SOMME_MINIMALE = '1000 €';
 	const FRAIS_BOURSIERS = '0.9%';
@@ -119,7 +120,7 @@ class TradingBot
 	// Les seuils se calculent selon cours actuel - {$seuil}% 
 	// eg : action à 100eur, trois seuils à 5% 6% et 7% :
 	// => seuils à 95, 94 et 93euros.
-	const SEUIL_POLICY = '3%;3.5%'; // multiple seuils allowed, splited with ";". eg: 5%;5.5%;6%
+	const SEUIL_POLICY = '2.8%;3.5%'; // multiple seuils allowed, splited with ";". eg: 5%;5.5%;6%
 	const POLICY_PRIORITY = 'ASC'; // ASC = la priorité est le seuil le plus proche du cours. => maximise les benefices
 									// DESC = la priorité est au seuil le plus lointain. => moins d'ordres executés.
 	const STOPLOSS = true; // par défaut, mettre des stoploss
@@ -152,7 +153,7 @@ class TradingBot
 			'IndicateurAchat' => array() // Aucun Indicateur significativement meilleur à l'achat.
 			),
 		'FR0010307819' => array( // Legrand [LR]
-			'IndicateurAchat' => array(), // 'SignalMACD&CCI' 
+			'IndicateurAchat' => array() // 'SignalMACD&CCI' 
 			),
 		'FR0000125486' => array( // Vinci [DG]
 			'IndicateurAchat' => 'CCI&SignalMACD|RSI&CCI&VolumesOscillator' // Less selective than RSI&Stoch
@@ -205,9 +206,10 @@ class TradingBot
 		'FR0000133308' => array( // Orange [ORA]
 			'IndicateurAchat' => 'RSI&VolumesOscillator'
 			),
-// 		'FR0000121501' => array( // Peugeot [UG]
+		'FR0000121501' => array( // Peugeot [UG]
 // 			'IndicateurAchat' => 'RSI&Stochastic' //Defaults
-// 			),
+			'IndicateurAchat' => array(),
+			),
 		'FR0000124570' => array( // Plastic Ominum [POM]
 			'IndicateurAchat' => 'RSI&LongStochastic&Williams|RSI&LongStochastic|CCI&RSI&VolumesOscillator' //|RSI&Stochastic
 			),
@@ -218,7 +220,7 @@ class TradingBot
 			'IndicateurAchat' => 'RSI&Stochastic|RSI&VolumesOscillator'
 			),
 		'FR0000124141' => array( // Veolia Environnement VIE
-			'IndicateurAchat' => 'RSI&VolumesOscillator' //|RSI&CCI&VolumesOscillator
+			'IndicateurAchat' => 'RSI&VolumesOscillator|RSI&Stochastic' //|RSI&CCI&VolumesOscillator
 			),
 		'FR0000120404' => array( // Accor Hotels AC
 			'IndicateurAchat' => 'CCI&RSI&VolumesOscillator'
@@ -256,6 +258,9 @@ class TradingBot
 		'CH0012214059' => array( // Lafarge LHN
 			'IndicateurAchat' => array(),
 			),
+		'FR0000130007' => array( // Alcatel-Lucent ALU
+			'IndicateurAchat' => array(), // Racheté par Nokia, se reporter sur l'action Nokia
+			),
 // 		'FR0000073272' => array( // Safran SAF
 // 			'IndicateurAchat' => 'RSI&Stochastic'
 // 			),
@@ -274,6 +279,114 @@ class TradingBot
 // 		'FR0000031122' => array( // Air France - KLM AF
 // 			'IndicateurAchat' => 'RSI&Stochastic'
 // 			),
+		'FR0000031775' => array( // Vicat VCT
+			'IndicateurAchat' => array(),
+			),
+		'FR0000034639' => array( // Altran tech ALT
+			'IndicateurAchat' => 'RSI&VolumesOscillator', // Careful, ecartype limie.
+			),
+		'FR0000035081' => array( // Icade ICAD
+			'IndicateurAchat' => array() // Non éligible au PEA.
+			),
+		'FR0011726835' => array( // GTT GTT
+			'IndicateurAchat' => 'RSI&Stochastic|RSI&LongStochastic|CCI&RSI&VolumesOscillator'
+			),
+		'FR0010096479' => array( // Biomerieux BIM
+			'IndicateurAchat' => 'RSI&LongStochastic|CCI&RSI&VolumesOscillator' // RSI|RSI&VolumesOscillator|
+			),
+		'FR0000037046' => array( // Montupet_sa MON
+			'IndicateurAchat' => 'RSI&Stochastic|RSI&LongStochastic'
+			),
+		'FR0000038259' => array( // Eurofins_scient_ ERF
+			'IndicateurAchat' => array() //'RSI&LongStochastic|CCI&RSI&VolumesOscillator'
+			),
+		'FR0000039299' => array( // Bollore BOL
+			'IndicateurAchat' => array()
+			),
+		'FR0000044448' => array( // Nexans NEX
+			'IndicateurAchat' => 'CCI&RSI&VolumesOscillator'
+			),
+		'FR0000050809' => array( // Sopra_steria_group SOP
+			'IndicateurAchat' => array() //'RSI&LongStochastic' |SignalMACD&CCI&VolumesOscillator
+			),
+		'FR0000051070' => array( // Maurel_et_prom MAU
+			'IndicateurAchat' => array()
+			),
+		'FR0000051807' => array( // Teleperformance RCF
+			'IndicateurAchat' => 'RSI' //|RSI&VolumesOscillator|RSI&LongStochastic|CCI&RSI&VolumesOscillator|SignalMACD&CCI&VolumesOscillator
+			),
+		'FR0000052292' => array( // Hermes RMS
+			'IndicateurAchat' => array() //'RSI&Stochastic'
+			),
+		'FR0000053225' => array( // Metropole_tv MMT
+			'IndicateurAchat' => array() //'RSI&Stochastic|SignalMACD&CCI&VolumesOscillator'
+			),
+		'FR0000053266' => array( // Sartorius_stedim_biotech DIM
+			'IndicateurAchat' => array() //'RSI&VolumesOscillator'
+			),
+		'FR0000054470' => array( // Ubi_soft_entertain UBI
+			'IndicateurAchat' => 'RSI&LongStochastic|CCI&RSI&VolumesOscillator|SignalMACD&VolumesOscillator|SignalMACD&CCI&VolumesOscillator'
+			),
+		'FR0000054900' => array( // Tf1 TFI
+			'IndicateurAchat' => array()
+			),
+		'FR0000064578' => array( // Fonciere_des_regions FDR
+			'IndicateurAchat' => 'RSI&Stochastic|RSI&LongStochastic' // Moyen...
+			),
+		'FR0000073298' => array( // Ipsos IPS
+			'IndicateurAchat' => array()
+			),
+		'FR0000077919' => array( // Jc_decaux_sa_ DEC
+			'IndicateurAchat' => array()// 'SignalMACD&CCI&VolumesOscillator' //CCI&RSI&VolumesOscillator|
+			),
+		'FR0000120164' => array( // Cgg CGG
+			'IndicateurAchat' => array() //'SignalMACD&CCI&VolumesOscillator'
+			),
+		'FR0000120354' => array( // Vallourec VK
+			'IndicateurAchat' => array()
+			),
+		'FR0000120560' => array( // Neopost NEO
+			'IndicateurAchat' => array()
+			),
+		'FR0000120685' => array( // Natixis KN
+			'IndicateurAchat' => array() //'CCI&RSI&VolumesOscillator'
+			),
+		'FR0000120859' => array( // Imerys NK
+			'IndicateurAchat' => 'CCI&RSI&VolumesOscillator|SignalMACD&CCI&VolumesOscillator'
+			),
+		'FR0000120966' => array( // Bic BB
+			'IndicateurAchat' => array() //'SignalMACD&CCI&VolumesOscillator' //RSI|RSI&VolumesOscillator|RSI&LongStochastic|
+			),
+		'FR0000121121' => array( // Eurazeo RF
+			'IndicateurAchat' => 'RSI&Stochastic|CCI&RSI&VolumesOscillator|SignalMACD&CCI&VolumesOscillator'
+			),
+		'FR0000121147' => array( // Faurecia EO
+			'IndicateurAchat' => array() //'RSI&Stochastic'
+			),
+		'FR0000121204' => array( // Wendel_invest_ MF
+			'IndicateurAchat' => array()
+			),
+		'FR0000121220' => array( // Sodexo SW
+			'IndicateurAchat' => 'RSI|SignalMACD&CCI&VolumesOscillator' //|RSI&VolumesOscillator|RSI&Stochastic|RSI&LongStochastic|CCI&RSI&VolumesOscillator|
+			),
+		'FR0000121253' => array( // Rubis RUI
+			'IndicateurAchat' => array()
+			),
+		'FR0000121329' => array( // Thales HO
+			'IndicateurAchat' => 'RSI' // |RSI&VolumesOscillator|RSI&LongStochastic|CCI&RSI&VolumesOscillator
+			),
+		'FR0000121709' => array( // Seb SK
+			'IndicateurAchat' => 'RSI&VolumesOscillator|CCI&RSI&VolumesOscillator'
+			),
+		'FR0000121881' => array( // Havas HAV
+			'IndicateurAchat' => array() //'RSI&Stochastic'
+			),
+		'FR0000125007' => array( // Saint_gobain SGO
+			'IndicateurAchat' => 'RSI&Stochastic|SignalMACD&CCI&VolumesOscillator'
+			),
+		'FR0000125346' => array( // Ingenico_group ING
+			'IndicateurAchat' => array()
+			),
 		// Le reste est par défaut RSI&Stochastic
 		);
 	protected $Watchlist = array();
@@ -286,7 +399,11 @@ class TradingBot
 	{
 		$this->CM = $CM;
 // 		$this->Stock = $Stock;
-		$DB = $this->DB = new TradingHistory();
+		$this->DB = new TradingHistory();
+		
+		//Load External Indicators Data
+		$this->ByISINParams = array_merge(self::getExternalIndicators(), $this->ByISINParams);
+		
 		return $this;
 	}
 	
@@ -399,12 +516,16 @@ class TradingBot
 				print "Aucun indicateur n'a été spécifié.";
 			return $this; // Si aucun indicateur n'est spécifié, abort.
 		}
+		$tacache = array();
 		foreach($ind as $ou)
 		{
 			if(self::VERBOSE)
 				print "\n".' '.$stock->stock.' '.implode('&',$ou)." :";
 			foreach($ou as $func) //required func
-				if($stock->Analysis()->$func() <= 0)
+			{
+				if(!isset($tacache[$func]))
+					$tacache[$func] = $stock->Analysis()->$func();
+				if($tacache[$func] <= 0)
 				{
 					if(self::VERBOSE)
 						print '  '.$func.' negatif, aborting.';
@@ -413,6 +534,7 @@ class TradingBot
 				else
 					if(self::VERBOSE)
 						print '  '.$func.' positif';
+			}
 			// La combinaison d'indicateur donne un signal d'achat.
 // 			return $sens == 1 ? $this->OrdreAchat($stock) : $this->OrdreVente($stock);
 			if(self::VERBOSE)
@@ -516,7 +638,8 @@ class TradingBot
 				try{
 					$dat = $this->CM->Ordre($stock->isin)
 						->Vendre($seuils[$i][1]) // Qté
-						->ASeuil($seuils[$i][0]) // Seuil
+// 						->ASeuil($seuils[$i][0]) // Seuil
+						->APlage($seuils[$i][0], $this->Step($this->CalcCours($stock->PrixDeRevient, 0))) //A Plage de déclenchement, dont la limite est le prix de revient à bénéfice 0 frais de bourse inclus
 						->Hebdomadaire($this->SeuilExpireWeeks)
 						->Exec()
 						;
@@ -558,6 +681,227 @@ class TradingBot
 		foreach(get_object_vars($this) as $t)
 			unset($t);
 	}
-// 	public function NouveauSeuil(
+
+	// Indicateurs Generator 
+	// TODO : Detecter le benefice minimal
+	// TODO : Detecter par la volatilité moyenne le seuilPolicy
+	public static function BestIndicator($action, $days = 500, $seuil = '6%')
+	{
+		if(is_array($action))
+		{
+			$re=array();
+			$re[] = self::BestIndicator($action, $days, $seuil);
+			return $re;
+		}
+		
+		$STO = new Stock($action, 'd', Stock::PROVIDER_YAHOO, floor($days/260)); // cache last data yahoo data.
+		$Volatility = $STO->Analysis()->Volatility();
+		unset($STO);
+		
+		$indics = array(
+	// 		array('Williams'),
+	// 		array('Williams', 'VolumesOscillator'),
+	// 		array('Candle'), 
+			array('RSI'), // Works better on AF, ORA
+			array('RSI','VolumesOscillator'),
+	// 		array('Stochastic'), // Worst than LongStochastic
+	// 		array('LongStochastic'), // Better than Stochastic
+			/*array('Williams','Candle'),  ben ~ 6% , ecartype proche de la moyenne*/  
+			/*array('RSI', 'Williams', 'Candle'), ~never popped*/ 
+			array('RSI', 'Stochastic'),  // 2nd position // Marche mieux sur FP qu'avec le longstoch
+	// 		array('RSI', 'Stochastic', 'VolumesOscillator'),
+			array('RSI', 'LongStochastic'), // Provisoirement le meilleur, marche mieux sur AF, ORA. Moins bien sur FP. CDI ok
+			array('CCI', 'Stochastic'), // Test
+	// 		array('RSI', 'LongStochastic', 'Williams'), //May be more selective on AF
+			/*array('RSI', 'Candle'),*/ 
+	// 		array('MACD'), //
+	// 		array('MACD', 'Candle'), // Ecart type trop proche dela moyenne, résultats trop disparates entre les actions.
+			/*array('MACD', 'RSI'), never popped, or ~7%*/ 
+			/*array('MACD', 'Stochastic')*/ // Trop disparate comme résultats, ecart type > moyenne !!
+	// 		array('RSI', 'Williams'),
+	// 		array('CCI'), // commodities channel index
+// 			array('CCI', 'VolumesOscillator'),
+	// 		array('CCI', 'RSI'),
+			array('CCI','RSI','VolumesOscillator'),
+	// 		array('SignalMACD'),
+// 			array('SignalMACD', 'VolumesOscillator'),
+	// 		array('SignalMACD', 'CCI'),
+			array('SignalMACD', 'CCI', 'VolumesOscillator'),
+			);
+		if(!file_exists( $file = __METHOD__ . '.csv' ))
+		{
+			$o = 'Action,';
+			foreach($indics as $litteral)
+				$o .= implode('&', $litteral).',STDV,N,';
+			file_put_contents($file, $o. 'BestIndicator,ISIN,Mnemo'."\n", FILE_APPEND);
+		}
+		$mn = strstr($action, '.', true);
+		$isin = StockInd::getInstance()->search($mn);
+		file_put_contents($file, $action.',', FILE_APPEND);
+		$data = array();
+		foreach($indics as $funcs)
+		{
+			$litteralfuncs = implode('&', $funcs);
+			$data[$litteralfuncs] = array();
+			$slicelength = 100;
+			$slice = ($days+$slicelength)*-1;
+			for($slicelength; $slicelength < $slice*-1; $slicelength++)
+			{
+				$stock = new Stock($action, 'd', Stock::PROVIDER_CACHE);
+				$closes = $stock->AdjustedClose(true);
+// 				$ta = $stock->Slice($slice, $slicelength)->Analysis();
+				$stock->Slice($slice, $slicelength);
+				$tacache = array();
+				foreach($funcs as $func)
+				{
+					if(!isset($tacache[$func]))
+						$tacache[$func] = $stock->Analysis()->$func();
+					if($tacache[$func] <= 0)
+						continue 2; // Exit if not 
+				}
+				$max = 0;
+				for($thislength = 1; $thislength< ($slice*-1 - $slicelength); $thislength++)
+				{
+					$m = max(array_slice($closes, $slice + $slicelength, $thislength));
+					if($m > $max)
+						$max = $m;
+					elseif($m < $max*((100-(float)$seuil)/100))//delta 6% avant de couper court.
+					{
+						$slicelength += $thislength;
+						break 1; // break at 
+					}
+					else	continue 1;
+				}
+				$data[$litteralfuncs][] = round(100*($max - $stock->getLast()) / $stock->getLast(), 3);
+			}
+			// Averaging the data...
+			if(!empty($data[$litteralfuncs]))
+			{
+				$n = count($data[$litteralfuncs]);
+				if($n>1)
+				{
+					$mean = array_sum($data[$litteralfuncs]) / $n;
+					$carry = 0.0;
+					foreach ($data[$litteralfuncs] as $val) {
+						$d = ((double) $val) - $mean;
+						$carry += $d * $d;
+					};
+					$rstdev = ($stdev = sqrt($carry / $n)) / $mean;
+					$data[$litteralfuncs]['avg'] = $mean;
+					$data[$litteralfuncs]['stdev'] = $stdev;
+					$data[$litteralfuncs]['rstdev'] = $rstdev;
+					$data[$litteralfuncs]['numb'] = $n;
+					$data[$litteralfuncs]['power'] = round($stdev*$n/$mean, 2);
+				}
+				else
+				{
+					$data[$litteralfuncs]['avg'] = $data[$litteralfuncs][0];
+					$data[$litteralfuncs]['stdev'] = 0;
+					$data[$litteralfuncs]['rstdev'] = 0;
+					$data[$litteralfuncs]['numb'] = 1;
+					$data[$litteralfuncs]['power'] = 1;
+				}
+				file_put_contents($file, 
+					$data[$litteralfuncs]['avg'].','.
+					$data[$litteralfuncs]['stdev'].','.
+					$data[$litteralfuncs]['numb'].',',
+					FILE_APPEND);
+			}
+			else
+				file_put_contents($file, '0,0,0,', FILE_APPEND);
+		}
+		//Interpret
+		$pwr = array();
+		$std = 100.0;
+// 		$avg = array();
+		foreach($data as $func => $p)
+		{
+// 			print 'Intervalle de Confiance 95 pour '.$func.' : '.($p['avg']-2*$p['stdev'])."\n";
+			if(!isset($p['avg']))
+				continue;
+			if($p['avg'] < (float)$seuil) // Si la moyenne n'outrepasse pas le seuil de détection...
+				continue;
+			if($p['avg']-2*$p['stdev'] < (float)$seuil) // non significatif, contient 0.
+				continue;
+			//Puissance insuffisante => On quitte
+			if($p['numb'] < 2 
+// 				&& $p['avg'] < 2.5*(float)$seuil
+				) // Si la puissance est insuffisante, au moins on élimine si la moyenne est inférieure à 2x le seuil afin d'approximer un IC95
+				continue;
+			$tests = explode('&', $func);
+			if(!empty(array_intersect($tests, $pwr))) // Si une focntion composant l'indicateur existe déja seul parmi les indicateurs, c'est un indicateur redondant inutile qu'on annule.
+				continue;
+			$pwr[] = $func;
+			if($p['stdev'] < $std)
+				$std = $p['stdev'];
+// 			$avg[$func] = $p['avg'];
+			continue;
+		}
+		file_put_contents($file, implode('|', $pwr).','.$isin.','.$mn."\n", FILE_APPEND);
+		return array(
+			'IndicateurAchat' => implode('|', $pwr),
+// 			'SeuilPolicy' => round($Volatility*100, 2),
+// 			'SeuilPolicy2' => $std,
+		);
+// 			if($p['rstdev'] > .3) //30% de divergences à la moyenne
+// 				continue;
+// // 			if($p['power'] > 3)
+// // 				continue;
+// 			$avg[$func] = $p['avg'];
+// 			$pwr[$func] = $p['power'];
+// 			if(isset($p['power']) && $p['power'] < $power)
+// 			{
+// 				if(($p['power']-$power) / $p['power'] <0.1) // 10% ÉQUIVALENT
+// 					$pfunc .= '|'.$func;
+// 				else
+// 					$pfunc = $func;
+// 				$power = $p['power'];
+// 			}
+// 			if(isset($p['rstdev']) && $p['rstdev'] < $rst)
+// 			{
+// 				if(($p['rstdev']-$rst) / $p['rstdev'] <0.1) // 10% ÉQUIVALENT
+// 					$pfunc .= '|'.$func;
+// 				else
+// 					$pfunc = $func;
+// 				$rst = $p['rstdev'];
+// 			}
+		
+// 		return $data;
+	}
+	public static $YahooSBF120 = array('SOLB.BR', 'LHN.PA','AF.PA','VCT.PA', 'ALT.PA', 'ICAD.PA', 'MON.PA', 'ERF.PA', 'BOL.PA', 'NEX.PA', 'ACA.PA', 'SOP.PA', 'MAU.PA', 'ATO.PA', 'RCF.PA', 'RMS.PA', 'MMT.PA', 'DIM.PA', 'UBI.PA', 'TFI.PA', 'FDR.PA', 'ATE.PA', 'SAF.PA', 'IPS.PA', 'DEC.PA', 'AI.PA', 'CGG.PA', 'CA.PA', 'CNP.PA', 'FP.PA', 'OR.PA', 'VK.PA', 'AC.PA', 'EN.PA', 'NEO.PA', 'SAN.PA', 'CS.PA', 'BN.PA', 'KN.PA', 'RI.PA', 'NK.PA', 'BB.PA', 'MC.PA', 'RF.PA', 'EO.PA', 'MF.PA', 'SW.PA', 'RUI.PA', 'ML.PA', 'HO.PA', 'KER.PA', 'UG.PA', 'EI.PA', 'SK.PA', 'HAV.PA', 'LI.PA', 'SU.PA', 'VIE.PA', 'POM.PA', 'UL.PA', 'SGO.PA', 'CAP.PA', 'ING.PA', 'DG.PA', 'CO.PA', 'ZC.PA', 'VIV.PA', /*'ALU.PA',*/ 'MMB.PA', 'FR.PA', 'RCO.PA', 'FGR.PA', 'PUB.PA', 'DSY.PA', 'GLE.PA', 'BNP.PA', 'TEC.PA', 'RNO.PA', 'ORA.PA', 'ORP.PA', 'ILD.PA', 'GNFT.PA', 'ELE.PA', 'BVI.PA', 'GFC.PA', 'BIM.PA', 'NXI.PA', 'SAFT.PA', 'ENGI.PA', 'ALO.PA', 'ETL.PA', 'MERY.PA', 'EDF.PA', 'IPN.PA', 'LR.PA', 'AKE.PA', 'IPH.PA', 'ADP.PA', 'KORI.PA', 'SCR.PA', 'DBV.PA', 'RXL.PA', 'GET.PA', 'SEV.PA', 'COFA.PA', 'EDEN.PA', 'TCH.PA', 'ADOC.PA', 'NUM.PA', 'GTT.PA', 'ELIOR.PA', 'ELIS.PA', 'EUCAR.PA', 'SESG.PA', 'MT.PA', 'APAM.AS', 'STM.PA', 'AIR.PA', 'GTO.PA', 'ENX.PA', /*'ALFIG.PA', 'SRP.PA',*/ 'CDI.PA');
+	public static function BuildIndicators($days = 500, $seuil = '6%')
+	{
+// 		$list = StockInd::getInstance()->Lib;
+		$Indicators = array();
+		$i = 0;
+		foreach(self::$YahooSBF120 as $ya)
+		{
+			print ++$i.'/'.count(self::$YahooSBF120).'...'."\n"; 
+			$mn = strstr($ya, '.', true);
+			$isin = StockInd::getInstance()->search($mn);
+			if($isin == false)
+			{
+				print $ya.' ['.$mn.'] was not found.';
+				continue;
+			}
+			$label = StockInd::getInstance()->searchLabel($isin);
+			$Indicators[$isin] = self::BestIndicator($ya);
+			$Indicators[$isin]['_AutoLabel'] = ucwords($label);
+			$Indicators[$isin]['_AutoMnemo'] = $mn;
+			print_r($Indicators);
+		}
+		file_put_contents(self::EXTERNAL_INDICATORS, '<?php'."\n".'$Indicators = '.var_export($Indicators, true).';'."\n".'?>');
+		return true;
+	}
+	public static function getExternalIndicators()
+	{
+		static $Inds = array();
+		if(empty($Inds) && file_exists(self::EXTERNAL_INDICATORS) && is_readable(self::EXTERNAL_INDICATORS))
+		{
+			require_once(self::EXTERNAL_INDICATORS);
+			$Inds = $Indicators;
+		}
+		return $Inds;
+	}
 }
 

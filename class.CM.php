@@ -36,13 +36,18 @@ class SimulatorAccount
 	
 	private function getStock($isin)
 	{
-		if(!isset($this->stockCache[$isin][$this->slicelength]))
+		if(!isset($this->stockCache[$this->slicelength][$isin]))
 		{
 			$stock = new Stock(StockInd::getInstance()->searchMnemo($isin).'.PA', 'd', Stock::PROVIDER_CACHE);
-			return $this->stockCache[$isin][$this->slicelength] = $stock->Slice($this->slicestart, $this->slicelength);
+			return $this->stockCache[$this->slicelength][$isin] = $stock->Slice($this->slicestart, $this->slicelength);
 		}
 		else
-			return $this->stockCache[$isin][$this->slicelength];
+			return $this->stockCache[$this->slicelength][$isin];
+	}
+	private function clearStockCache()
+	{
+		unset($this->stockCache[$this->slicelength]);
+		return $this;
 	}
 	public function Start($start)
 	{
@@ -51,6 +56,7 @@ class SimulatorAccount
 	}
 	public function NewDay($today=1)
 	{
+		$this->clearStockCache();
 		$this->slicelength += $today;
 // 		print_r($this->ordres);
 // 		print $this->slicelength;
@@ -68,7 +74,8 @@ class SimulatorAccount
 		{
 			$s = $this->getStock($isin)->getLast();
 			$this->portefeuille[$isin]['DernierCours'] = $s;
-			$this->portefeuille[$isin]['PlusvaluePCT'] = round(($s-$this->portefeuille[$isin]['c_achat'])/ $this->portefeuille[$isin]['c_achat'], 2)*100 .'%';
+			$this->portefeuille[$isin]['PlusvaluePCT'] = round(($s-$this->portefeuille[$isin]['c_achat'])/$this->portefeuille[$isin]['c_achat'], 4)*100 .'%';
+			$this->portefeuille[$isin]['UnitCostPrice'] = round($this->portefeuille[$isin]['c_achat']*(100+(float)self::BROKER_FEE)/100, 3);
 			$this->portefeuille[$isin]['ValueInEur'] = $s * $this->portefeuille[$isin]['qte'];
 		}
 		return $this;
@@ -126,7 +133,7 @@ class SimulatorAccount
 				$somme = $d['qte'] * $s * (1-(float)self::BROKER_FEE/100);
 				$this->Deposit($somme);
 				$this->portefeuille[$d['isin']]['qte'] -= $d['qte']; //TODO ontice
-				print "\n".' => Ordre de Vente passé sur ['.$this->portefeuille[$d['isin']]['stock'].'] x '.$d['qte'].' pour un total de = '.$somme.'€'."\n";
+				print "\n".' => Ordre de Vente passé sur ['.$this->portefeuille[$d['isin']]['stock'].'] x '.$d['qte'].' à '.$s.' pour un total de = '.$somme.'€. Limite à '.$d['cours']*$d['qte'].'€' ."\n";
 				if($this->portefeuille[$d['isin']]['qte'] <= 0)
 					unset($this->portefeuille[$d['isin']]);
 				$this->removeOrder($ref);
@@ -178,7 +185,7 @@ class SimulatorAccount
 
 	public function __toString()
 	{
-		return $this->cash.'€'.print_r($this->portefeuille, true);
+		return $this->cash.'€'."\n Portefeuille : ".print_r($this->portefeuille, true);
 	}
 	public static function getInstance()
 	{
@@ -204,7 +211,7 @@ class Simulator implements Broker
 		$re = array();
 		foreach($this->s->Valorisation() as $isin => $d)
 		{
-			$re[] = new Action($this, new SimpleXMLElement('<security IsinCode="'.$d['isin'].'" Nominal="'.$d['qte'].'" TradingPlace="024" GainLostPrct="'.$d['PlusvaluePCT'].'" LastQuote="'.$d['DernierCours'].'" ValueInEur="'.$d['ValueInEur'].'">'.$d['stock'].'</security>'));
+			$re[] = new Action($this, new SimpleXMLElement('<security IsinCode="'.$d['isin'].'" Nominal="'.$d['qte'].'" TradingPlace="024" GainLostPrct="'.$d['PlusvaluePCT'].'" LastQuote="'.$d['DernierCours'].'" ValueInEur="'.$d['ValueInEur'].'" UnitCostPrice="'.$d['UnitCostPrice'].'">'.$d['stock'].'</security>'));
 		}
 		return $re;
 	}
@@ -250,6 +257,12 @@ class OrdreSimulator implements _OrdreEnCours
 	public function ASeuil($seuil)
 	{
 		$this->seuil = $seuil;
+		return $this;
+	}
+	public function APlage($seuil, $lim)
+	{
+		$this->seuil = $seuil;
+		$this->lim = $lim;
 		return $this;
 	}
 	public function ACoursLimite($lim)

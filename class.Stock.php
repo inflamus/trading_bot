@@ -43,6 +43,7 @@ abstract class StockCache
 class YahooStock implements StockProvider
 {
 	const STOCKFEED = 'http://real-chart.finance.yahoo.com/table.csv';
+	const CAC40 = '^FCHI';
 	
 	private $params = array(
 		's' => '',
@@ -1015,6 +1016,12 @@ class StockAnalysis
 		return 0;
 		//TODO : Interpret Divergences
 	}
+	
+// 	public function Beta(Stock $CAC40)
+// 	{
+// 		return trader_beta($this->cache, $CAC40->Analysis()->buildData('A'), 900);
+// 		
+// 	}
 	
 	// Results seems weird...
 // 	public function Benchmark()
