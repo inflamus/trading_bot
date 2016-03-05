@@ -649,7 +649,7 @@ class TradingBot
 						$dat, 
 						array(
 							'Seuil' => $seuils[$i][0],
-							'Expire' => strtotime('last Friday of +'.$this->SeuilExpireWeeks.'weeks')
+							'Expire' => date('w') == 5 && strtotime(Ordre::FERMETURE_BOURSE) > time() ? strtotime(Ordre::FERMETURE_BOURSE) : strtotime('Friday +'.$this->SeuilExpireWeeks -1 .'weeks '.Ordre::FERMETURE_BOURSE)
 						));
 				}catch(Exception $e)
 				{

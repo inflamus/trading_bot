@@ -42,7 +42,7 @@ class SimulatorAccount
 			if($mn == 'SOLB')	$mn .= '.BR';
 			elseif($mn == 'APAM')	$mn .= '.AS';
 			else	$mn .= '.PA';
-			$stock = new Stock(, 'd', Stock::PROVIDER_CACHE);
+			$stock = new Stock($mn, 'd', Stock::PROVIDER_CACHE);
 			return $this->stockCache[$this->slicelength][$isin] = $stock->Slice($this->slicestart, $this->slicelength);
 		}
 		else
@@ -1236,7 +1236,7 @@ class Ordre extends CreditMutuel
 	public function Hebdomadaire($h=0)
 	{
 		if((int)$h>1)
-			return $this->Validite(4, strtotime("last Friday of +$h weeks"));
+			return $this->Validite(4, strtotime("Friday +$h weeks"));
 		return $this->Validite(5);
 	}
 	public function BiHebdomadaire()
