@@ -8,7 +8,7 @@ require('class.StockInd.php');
 
 $somme_de_depart = $argc > 1 ? $argv[1] : '30000€'; 
 $days = $argc > 2 ? $argv[2] : 260; // 1an, 260 jours
-$list = $argc > 3 ? array_slice($argv, 3) : TradingBot::$YahooSBF120; //SBF120.
+$list = $argc > 3 ? array_slice($argv, 3) : Stock::$YahooSBF120; //SBF120.
 
 print "Watchlist : ".wordwrap(implode(' ', $list))."\n";
 print "Somme de départ : $somme_de_depart\n";
@@ -37,8 +37,8 @@ try{
 		}
 		
 		$T	
-// 			->GlobalParams('BeneficeMinimal', '10%')
-// 			->GlobalParams('SeuilPolicy', '3%')
+// 			->GlobalParams('BeneficeMinimal', '7.5%')
+// 			->GlobalParams('SeuilPolicy', '2.5%')
 			// Add other specific params here...
 			// ->IsinParams('Michelin', 'BeneficeMinimal', '8%')
 			;
@@ -49,6 +49,7 @@ try{
 		unset($todestroy);
 	}
 	print("\n".$SimAccount);
+	print("\nRadio de Sharpe à 3%: ".$SimAccount->SharpeRatio(0.03));
 }catch(Exception $e)
 {
 	fwrite(STDERR, $e->getMessage());

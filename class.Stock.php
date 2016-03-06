@@ -40,6 +40,7 @@ abstract class StockCache
 	}
 }
 
+//TODO YahooStock : Implements a contructor by Mnemo and not by mnemo.place
 class YahooStock implements StockProvider
 {
 	const STOCKFEED = 'http://real-chart.finance.yahoo.com/table.csv';
@@ -234,6 +235,9 @@ class Stock extends StockCache implements Iterator
 	 */
 	const PROVIDER_YAHOO = 'YahooStock';
 	const PROVIDER_CACHE = 'CacheStock';
+	
+	public static $YahooSBF120 = array('SOLB.BR', 'LHN.PA','AF.PA','VCT.PA', 'ALT.PA', 'ICAD.PA', 'MON.PA', 'ERF.PA', 'BOL.PA', 'NEX.PA', 'ACA.PA', 'SOP.PA', 'MAU.PA', 'ATO.PA', 'RCF.PA', 'RMS.PA', 'MMT.PA', 'DIM.PA', 'UBI.PA', 'TFI.PA', 'FDR.PA', 'ATE.PA', 'SAF.PA', 'IPS.PA', 'DEC.PA', 'AI.PA', 'CGG.PA', 'CA.PA', 'CNP.PA', 'FP.PA', 'OR.PA', 'VK.PA', 'AC.PA', 'EN.PA', 'NEO.PA', 'SAN.PA', 'CS.PA', 'BN.PA', 'KN.PA', 'RI.PA', 'NK.PA', 'BB.PA', 'MC.PA', 'RF.PA', 'EO.PA', 'MF.PA', 'SW.PA', 'RUI.PA', 'ML.PA', 'HO.PA', 'KER.PA', 'UG.PA', 'EI.PA', 'SK.PA', 'HAV.PA', 'LI.PA', 'SU.PA', 'VIE.PA', 'POM.PA', 'UL.PA', 'SGO.PA', 'CAP.PA', 'ING.PA', 'DG.PA', 'CO.PA', 'ZC.PA', 'VIV.PA', /*'ALU.PA',*/ 'MMB.PA', 'FR.PA', 'RCO.PA', 'FGR.PA', 'PUB.PA', 'DSY.PA', 'GLE.PA', 'BNP.PA', 'TEC.PA', 'RNO.PA', 'ORA.PA', 'ORP.PA', 'ILD.PA', 'GNFT.PA', 'ELE.PA', 'BVI.PA', 'GFC.PA', 'BIM.PA', 'NXI.PA', 'SAFT.PA', 'ENGI.PA', 'ALO.PA', 'ETL.PA', 'MERY.PA', 'EDF.PA', 'IPN.PA', 'LR.PA', 'AKE.PA', 'IPH.PA', 'ADP.PA', 'KORI.PA', 'SCR.PA', 'DBV.PA', 'RXL.PA', 'GET.PA', 'SEV.PA', 'COFA.PA', 'EDEN.PA', 'TCH.PA', 'ADOC.PA', 'NUM.PA', 'GTT.PA', 'ELIOR.PA', 'ELIS.PA', 'EUCAR.PA', 'SESG.PA', 'MT.PA', 'APAM.AS', 'STM.PA', 'AIR.PA', 'GTO.PA', 'ENX.PA', /*'ALFIG.PA', 'SRP.PA',*/ 'CDI.PA');
+	public static $YahooCAC40 = array('AC.PA', 'ACA.PA', 'AI.PA', 'AIR.PA', 'ALO.PA', 'BN.PA', 'BNP.PA', 'CA.PA', 'CAP.PA', 'CS.PA', 'DG.PA', 'EI.PA', 'EN.PA', 'ENGI.PA', 'FP.PA', 'FR.PA', 'GLE.PA', 'KER.PA', 'LHN.PA', 'LI.PA', 'LR.PA', 'MC.PA', 'ML.PA', 'MT.PA', 'NOKIA.PA', 'OR.PA', 'ORA.PA', 'PUB.PA', 'RI.PA', 'RNO.PA', 'SAF.PA', 'SAN.PA', 'SGO.PA', 'SOLB.BR', 'SU.PA', 'TEC.PA', 'UG.PA', 'UL.PA', 'VIE.PA', 'VIV.PA');
 
 	public 	$stock = '';
 	private	$data = array(
@@ -389,6 +393,11 @@ class Stock extends StockCache implements Iterator
 	public function getLast($sub = 5)
 	{
 		return end($this->data)[$this->subDataIndex($sub)];
+	}
+	
+	public function getFirst($sub = 5)
+	{
+		return array_shift(array_slice($this->data, 0, 1))[$this->subDataIndex($sub)];
 	}
 	
 	private function subDataIndex($d = 5)

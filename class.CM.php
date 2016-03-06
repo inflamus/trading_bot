@@ -132,11 +132,10 @@ class SimulatorAccount
 					continue;
 				else
 					$s = $d['seuil'];
-// 				print_r( $d );
 				//Ordre de vente passé
 				$somme = $d['qte'] * $s * (1-(float)self::BROKER_FEE/100);
 				$this->Deposit($somme);
-				$this->portefeuille[$d['isin']]['qte'] -= $d['qte']; //TODO ontice
+				$this->portefeuille[$d['isin']]['qte'] -= $d['qte'];
 				print "\n".' => Ordre de Vente passé sur ['.$this->portefeuille[$d['isin']]['stock'].'] x '.$d['qte'].' à '.$s.' pour un total de = '.$somme.'€. Limite à '.$d['cours']*$d['qte'].'€' ."\n";
 				if($this->portefeuille[$d['isin']]['qte'] <= 0)
 					unset($this->portefeuille[$d['isin']]);
@@ -183,10 +182,40 @@ class SimulatorAccount
 	}
 	public function Deposit($cash)
 	{
+		// Sharpe Ratio calculator :
+		static $i = false;
+		if(!$i) // Set the initial deposit cash
+		{
+			$this->initialcash = (int)$cash;
+			$i = true;
+		}
+		else
+			$this->sellhistory[] = (int)$cash;
+		// Concrete cash handling
 		$this->cash += (int)$cash;
 		return $this;
 	}
 
+	// Utils
+	private $initialcash = 0, $sellhistory = array();
+	public function SharpeRatio($rendementsansrisque = 0.03) // 3% du cac40
+	{
+		$sellhistory =  $this->sellhistory;
+		if(!empty($this->portefeuille)) // Add in history of sell prices the current portfolio
+			$sellhistory += array_map(function($v){return $v['ValueInEur'];}, $this->portefeuille);
+		$n = count($sellhistory);
+		$mean = array_sum($sellhistory) / $n;
+		$carry = 0.0;
+		foreach ($sellhistory as $val) {
+			$d = ((double) $val) - $mean;
+			$carry += $d * $d;
+		};
+		
+		//Sharpe Ratio = RendementRisqué - RendementSansRisque / EcartTypeRisqué
+		return (array_sum($sellhistory) - $rendementsansrisque*$this->initialcash)
+			/ sqrt($carry / $n);
+	}
+	
 	public function __toString()
 	{
 		return $this->cash.'€'."\n Portefeuille : ".print_r($this->portefeuille, true);
@@ -577,8 +606,19 @@ class CreditMutuel extends Webservice implements Broker
 		// parse headers and get Cookie IdSes
 		$this->parseResponseHeaders($headers);
 		
+		//Handle Loggin errors.
+		try{
+			$this->AccountDetails = new SimpleXMLElement($body);
+		}
+		catch(Exception $e)
+		{// If an error was fired when SimpleXMLElement the returned body, that's mean there was a bug parsing the XML data.
+			sleep(5); // Wait 5 seconds, clear cache and redo.
+			if(self::SAVE_SESSIONS)
+				@unlink($session);
+			return $this->Identification($user, $pass);
+		}
 		//return account details
-		return $this->AccountDetails = new SimpleXMLElement($body);
+		return $this->AccountDetails;
 	}
 	
 	const URL_VALO = '/bourse/SecurityAccountOverview.aspx';

@@ -145,248 +145,41 @@ class TradingBot
 				//GlobalParams like
 				);
 		*/
-		// Adjusted params from a quick study https://docs.google.com/spreadsheets/d/1ekQSj2Y0468rR16UQAm1m702RulnPcs4Bcezd-N98wI/edit
+		// See more benchmarks https://docs.google.com/spreadsheets/d/1ekQSj2Y0468rR16UQAm1m702RulnPcs4Bcezd-N98wI/edit
 		'FR0000120073' => array( // Air Liquide [AI]
 			'IndicateurAchat' => 'RSI&LongStochastic|SignalMACD&CCI&VolumesOscillator' //|RSI&Stochastic specific buy signal
 			),
-		'BE0003470755' => array( // Solvay [SOLB]
-			'IndicateurAchat' => array() // Aucun Indicateur significativement meilleur à l'achat.
-			),
-		'FR0010307819' => array( // Legrand [LR]
-			'IndicateurAchat' => array() // 'SignalMACD&CCI' 
-			),
-		'FR0000125486' => array( // Vinci [DG]
-			'IndicateurAchat' => 'CCI&SignalMACD|RSI&CCI&VolumesOscillator' // Less selective than RSI&Stoch
-			),
-		'FR0000130452' => array( // Eiffage [FGR]
-			'IndicateurAchat' => 'RSI&VolumesOscillator|CCI&SignalMACD' // Idem vinci
-			),
-		'FR0000120321' => array( // L'Oreal [OR]
-			'IndicateurAchat' => 'RSI&Williams|RSI&CCI|CCI&SignalMACD'  //RSI + williams fait mieux que RSI+Stoch
-			),
-		'FR0000127771' => array( // Vivendi [VIV]
-			'IndicateurAchat' => 'SignalMACD&VolumesOscillator' // 25|18|11, les performances se trouvent dans le dividende...
-			),
-		'FR0000130213' => array( // Lagardere [MMB]
-			'IndicateurAchat' => 'RSI&LongStochastic' //|RSI&Stochastic
-			),
-		'FR0000131104' => array( // BNP Paribas [BNP]
-			'IndicateurAchat' => array() // Aucun
-			),
-		'FR0000120644' => array( // Danone [BN]
-			'IndicateurAchat' => 'RSI|CCI&SignalMACD' //|RSI&CCI|RSI&LongStochastic|RSI&Stochastic
-			),
-		'FR0000120693' => array( // Pernod Ricard [RI]
-			'IndicateurAchat' => 'RSI&LongStochastic|RSI&CCI' //RSI&Stoch or RSI
-			),
 		'FR0000121667' => array( // Essilor [EI]
-			'IndicateurAchat' => 'RSI&Williams|CCI&RSI',
+			'IndicateurAchat' => 'RSI&Williams|CCI&RSI|RSI&Stochastic',
 			),
 		'FR0000120578' => array( // Sanofi [SAN]
 			'IndicateurAchat' => 'CCI&SignalMACD&VolumesOscillator' // Aucun
 			),
-		'FR0000125585' => array( // Casino [CO]
-			'IndicateurAchat' => 'RSI&LongStochastic|RSI&Stochastic&Williams|CCI&SignalMACD' //|RSI&Stochastic
-			),
-		'FR0000120172' => array( // Carrefour [CA]
-			'IndicateurAchat' => array() // aucun aucun
-			),
-		'FR0000120628' => array( // Axa [CS]
-			'IndicateurAchat' => array() // Aucun aucun
-			),
 		'FR0000120222' => array( // CNP Assurances [CNP]
-			'IndicateurAchat' => 'SignalMACD&CCI|SignalMACD&VolumesOscillator' // Aucun
-			),
-		'FR0000121485' => array( // Kering [KER]
-			'IndicateurAchat' => 'SignalMACD&CCI' // Le seul qui semble performer a 20% sur ce titre.
+			'IndicateurAchat' => 'RSI&LongStochastic|SignalMACD&CCI&VolumesOscillator' // Aucun
 			),
 		'FR0004035913' => array( // Iliad [ILD]
 			'IndicateurAchat' => 'RSI&LongStochastic|RSI&CCI&VolumesOscillator'
 			),
 		'FR0000133308' => array( // Orange [ORA]
-			'IndicateurAchat' => 'RSI&VolumesOscillator'
-			),
-		'FR0000121501' => array( // Peugeot [UG]
-// 			'IndicateurAchat' => 'RSI&Stochastic' //Defaults
-			'IndicateurAchat' => array(),
-			),
-		'FR0000124570' => array( // Plastic Ominum [POM]
-			'IndicateurAchat' => 'RSI&LongStochastic&Williams|RSI&LongStochastic|CCI&RSI&VolumesOscillator' //|RSI&Stochastic
+			'IndicateurAchat' => 'RSI&VolumesOscillator' //Auto to RSI, enhanced with volumes to slightly increase specificity
 			),
 		'FR0000121261' => array( // Michelin [ML]
 			'IndicateurAchat' => 'RSI&Stochastic|SignalMACD&CCI&VolumesOscillator' // defaults
 			),
-		'FR0010112524' => array( // Nexity NXI
-			'IndicateurAchat' => 'RSI&Stochastic|RSI&VolumesOscillator'
-			),
-		'FR0000124141' => array( // Veolia Environnement VIE
-			'IndicateurAchat' => 'RSI&VolumesOscillator|RSI&Stochastic' //|RSI&CCI&VolumesOscillator
-			),
-		'FR0000120404' => array( // Accor Hotels AC
-			'IndicateurAchat' => 'CCI&RSI&VolumesOscillator'
-			),
-		'NL0000235190' => array( // Airbus AIR
-			'IndicateurAchat' => 'CCI&RSI&VolumesOscillator'
-			),
-		'FR0010220475' => array( // Alstom ALO
-			'IndicateurAchat' => array(),
-			),
-		'FR0000121964' => array( // Klepierre LI
-			'IndicateurAchat' => array(),
-			),
-		'FR0010208488' => array( // Engie ENGI
-			'IndicateurAchat' => 'CCI&RSI&VolumesOscillator'
-			),
-		'FR0000130577' => array( // Publicis PUB
-			'IndicateurAchat' => array(),
-			),
-		'FR0000131906' => array( // Renault RNO
-			'IndicateurAchat' => 'RSI&Stochastic|CCI&RSI&VolumesOscillator'
-			),
-		'FR0000121972' => array( // Schneider Electric SU
-			'IndicateurAchat' => array(),
-			),
-// 		'FR0000131708' => array( // Tecnip TEC
-// 			'IndicateurAchat' => 'RSI&Stochastic'
-// 			),
-		'FR0000124711' => array( // Unibail Rodamco UL
-			'IndicateurAchat' => array(),
-			),
-		'FR0000130338' => array( // Valeo FR
-			'IndicateurAchat' => array(),
-			),
 		'CH0012214059' => array( // Lafarge LHN
-			'IndicateurAchat' => array(),
+			'IndicateurAchat' => array(), // A voir...
 			),
 		'FR0000130007' => array( // Alcatel-Lucent ALU
 			'IndicateurAchat' => array(), // Racheté par Nokia, se reporter sur l'action Nokia
 			),
-// 		'FR0000073272' => array( // Safran SAF
-// 			'IndicateurAchat' => 'RSI&Stochastic'
-// 			),
-// 		'FR0000130403' => array( // Christian Dior CDI
-// 			'IndicateurAchat' => 'RSI&Stochastic'
-// 			),
-// 		'FR0000120503' => array( // Bouygues EN
-// 			'IndicateurAchat' => 'RSI&Stochastic'
-// 			),
-// 		'FR0000121014' => array( // LVMH MC
-// 			'IndicateurAchat' => 'RSI&Stochastic'
-// 			),
-// 		'FR0011594233' => array( // Numéricable NUM
-// 			'IndicateurAchat' => 'RSI&Stochastic'
-// 			),
-// 		'FR0000031122' => array( // Air France - KLM AF
-// 			'IndicateurAchat' => 'RSI&Stochastic'
-// 			),
-		'FR0000031775' => array( // Vicat VCT
-			'IndicateurAchat' => array(),
-			),
-		'FR0000034639' => array( // Altran tech ALT
-			'IndicateurAchat' => 'RSI&VolumesOscillator', // Careful, ecartype limie.
-			),
 		'FR0000035081' => array( // Icade ICAD
 			'IndicateurAchat' => array() // Non éligible au PEA.
 			),
-		'FR0011726835' => array( // GTT GTT
-			'IndicateurAchat' => 'RSI&Stochastic|RSI&LongStochastic|CCI&RSI&VolumesOscillator'
+		'FR0010667147' => array( // Coface COFA
+			'IndicateurAchat' => array() // Non éligible au PEA.
 			),
-		'FR0010096479' => array( // Biomerieux BIM
-			'IndicateurAchat' => 'RSI&LongStochastic|CCI&RSI&VolumesOscillator' // RSI|RSI&VolumesOscillator|
-			),
-		'FR0000037046' => array( // Montupet_sa MON
-			'IndicateurAchat' => 'RSI&Stochastic|RSI&LongStochastic'
-			),
-		'FR0000038259' => array( // Eurofins_scient_ ERF
-			'IndicateurAchat' => array() //'RSI&LongStochastic|CCI&RSI&VolumesOscillator'
-			),
-		'FR0000039299' => array( // Bollore BOL
-			'IndicateurAchat' => array()
-			),
-		'FR0000044448' => array( // Nexans NEX
-			'IndicateurAchat' => 'CCI&RSI&VolumesOscillator'
-			),
-		'FR0000050809' => array( // Sopra_steria_group SOP
-			'IndicateurAchat' => array() //'RSI&LongStochastic' |SignalMACD&CCI&VolumesOscillator
-			),
-		'FR0000051070' => array( // Maurel_et_prom MAU
-			'IndicateurAchat' => array()
-			),
-		'FR0000051807' => array( // Teleperformance RCF
-			'IndicateurAchat' => 'RSI' //|RSI&VolumesOscillator|RSI&LongStochastic|CCI&RSI&VolumesOscillator|SignalMACD&CCI&VolumesOscillator
-			),
-		'FR0000052292' => array( // Hermes RMS
-			'IndicateurAchat' => array() //'RSI&Stochastic'
-			),
-		'FR0000053225' => array( // Metropole_tv MMT
-			'IndicateurAchat' => array() //'RSI&Stochastic|SignalMACD&CCI&VolumesOscillator'
-			),
-		'FR0000053266' => array( // Sartorius_stedim_biotech DIM
-			'IndicateurAchat' => array() //'RSI&VolumesOscillator'
-			),
-		'FR0000054470' => array( // Ubi_soft_entertain UBI
-			'IndicateurAchat' => 'RSI&LongStochastic|CCI&RSI&VolumesOscillator|SignalMACD&VolumesOscillator|SignalMACD&CCI&VolumesOscillator'
-			),
-		'FR0000054900' => array( // Tf1 TFI
-			'IndicateurAchat' => array()
-			),
-		'FR0000064578' => array( // Fonciere_des_regions FDR
-			'IndicateurAchat' => 'RSI&Stochastic|RSI&LongStochastic' // Moyen...
-			),
-		'FR0000073298' => array( // Ipsos IPS
-			'IndicateurAchat' => array()
-			),
-		'FR0000077919' => array( // Jc_decaux_sa_ DEC
-			'IndicateurAchat' => array()// 'SignalMACD&CCI&VolumesOscillator' //CCI&RSI&VolumesOscillator|
-			),
-		'FR0000120164' => array( // Cgg CGG
-			'IndicateurAchat' => array() //'SignalMACD&CCI&VolumesOscillator'
-			),
-		'FR0000120354' => array( // Vallourec VK
-			'IndicateurAchat' => array()
-			),
-		'FR0000120560' => array( // Neopost NEO
-			'IndicateurAchat' => array()
-			),
-		'FR0000120685' => array( // Natixis KN
-			'IndicateurAchat' => array() //'CCI&RSI&VolumesOscillator'
-			),
-		'FR0000120859' => array( // Imerys NK
-			'IndicateurAchat' => 'CCI&RSI&VolumesOscillator|SignalMACD&CCI&VolumesOscillator'
-			),
-		'FR0000120966' => array( // Bic BB
-			'IndicateurAchat' => array() //'SignalMACD&CCI&VolumesOscillator' //RSI|RSI&VolumesOscillator|RSI&LongStochastic|
-			),
-		'FR0000121121' => array( // Eurazeo RF
-			'IndicateurAchat' => 'RSI&Stochastic|CCI&RSI&VolumesOscillator|SignalMACD&CCI&VolumesOscillator'
-			),
-		'FR0000121147' => array( // Faurecia EO
-			'IndicateurAchat' => array() //'RSI&Stochastic'
-			),
-		'FR0000121204' => array( // Wendel_invest_ MF
-			'IndicateurAchat' => array()
-			),
-		'FR0000121220' => array( // Sodexo SW
-			'IndicateurAchat' => 'RSI|SignalMACD&CCI&VolumesOscillator' //|RSI&VolumesOscillator|RSI&Stochastic|RSI&LongStochastic|CCI&RSI&VolumesOscillator|
-			),
-		'FR0000121253' => array( // Rubis RUI
-			'IndicateurAchat' => array()
-			),
-		'FR0000121329' => array( // Thales HO
-			'IndicateurAchat' => 'RSI' // |RSI&VolumesOscillator|RSI&LongStochastic|CCI&RSI&VolumesOscillator
-			),
-		'FR0000121709' => array( // Seb SK
-			'IndicateurAchat' => 'RSI&VolumesOscillator|CCI&RSI&VolumesOscillator'
-			),
-		'FR0000121881' => array( // Havas HAV
-			'IndicateurAchat' => array() //'RSI&Stochastic'
-			),
-		'FR0000125007' => array( // Saint_gobain SGO
-			'IndicateurAchat' => 'RSI&Stochastic|SignalMACD&CCI&VolumesOscillator'
-			),
-		'FR0000125346' => array( // Ingenico_group ING
-			'IndicateurAchat' => array()
-			),
+		// Par défaut, les données auto générées par le générateur, puis dans tous les cas, en IsinParams
 		// Le reste est par défaut RSI&Stochastic
 		);
 	protected $Watchlist = array();
@@ -718,7 +511,7 @@ class TradingBot
 	// 		array('MACD', 'Candle'), // Ecart type trop proche dela moyenne, résultats trop disparates entre les actions.
 			/*array('MACD', 'RSI'), never popped, or ~7%*/ 
 			/*array('MACD', 'Stochastic')*/ // Trop disparate comme résultats, ecart type > moyenne !!
-	// 		array('RSI', 'Williams'),
+			array('RSI', 'Williams'), // Useful for Essilor as
 	// 		array('CCI'), // commodities channel index
 // 			array('CCI', 'VolumesOscillator'),
 	// 		array('CCI', 'RSI'),
@@ -868,15 +661,14 @@ class TradingBot
 		
 // 		return $data;
 	}
-	public static $YahooSBF120 = array('SOLB.BR', 'LHN.PA','AF.PA','VCT.PA', 'ALT.PA', 'ICAD.PA', 'MON.PA', 'ERF.PA', 'BOL.PA', 'NEX.PA', 'ACA.PA', 'SOP.PA', 'MAU.PA', 'ATO.PA', 'RCF.PA', 'RMS.PA', 'MMT.PA', 'DIM.PA', 'UBI.PA', 'TFI.PA', 'FDR.PA', 'ATE.PA', 'SAF.PA', 'IPS.PA', 'DEC.PA', 'AI.PA', 'CGG.PA', 'CA.PA', 'CNP.PA', 'FP.PA', 'OR.PA', 'VK.PA', 'AC.PA', 'EN.PA', 'NEO.PA', 'SAN.PA', 'CS.PA', 'BN.PA', 'KN.PA', 'RI.PA', 'NK.PA', 'BB.PA', 'MC.PA', 'RF.PA', 'EO.PA', 'MF.PA', 'SW.PA', 'RUI.PA', 'ML.PA', 'HO.PA', 'KER.PA', 'UG.PA', 'EI.PA', 'SK.PA', 'HAV.PA', 'LI.PA', 'SU.PA', 'VIE.PA', 'POM.PA', 'UL.PA', 'SGO.PA', 'CAP.PA', 'ING.PA', 'DG.PA', 'CO.PA', 'ZC.PA', 'VIV.PA', /*'ALU.PA',*/ 'MMB.PA', 'FR.PA', 'RCO.PA', 'FGR.PA', 'PUB.PA', 'DSY.PA', 'GLE.PA', 'BNP.PA', 'TEC.PA', 'RNO.PA', 'ORA.PA', 'ORP.PA', 'ILD.PA', 'GNFT.PA', 'ELE.PA', 'BVI.PA', 'GFC.PA', 'BIM.PA', 'NXI.PA', 'SAFT.PA', 'ENGI.PA', 'ALO.PA', 'ETL.PA', 'MERY.PA', 'EDF.PA', 'IPN.PA', 'LR.PA', 'AKE.PA', 'IPH.PA', 'ADP.PA', 'KORI.PA', 'SCR.PA', 'DBV.PA', 'RXL.PA', 'GET.PA', 'SEV.PA', 'COFA.PA', 'EDEN.PA', 'TCH.PA', 'ADOC.PA', 'NUM.PA', 'GTT.PA', 'ELIOR.PA', 'ELIS.PA', 'EUCAR.PA', 'SESG.PA', 'MT.PA', 'APAM.AS', 'STM.PA', 'AIR.PA', 'GTO.PA', 'ENX.PA', /*'ALFIG.PA', 'SRP.PA',*/ 'CDI.PA');
 	public static function BuildIndicators($days = 500, $seuil = '6%')
 	{
 // 		$list = StockInd::getInstance()->Lib;
 		$Indicators = array();
 		$i = 0;
-		foreach(self::$YahooSBF120 as $ya)
+		foreach(Stock::$YahooSBF120 as $ya)
 		{
-			print ++$i.'/'.count(self::$YahooSBF120).'...'."\n"; 
+			print ++$i.'/'.count(Stock::$YahooSBF120).'...'."\n"; 
 			$mn = strstr($ya, '.', true);
 			$isin = StockInd::getInstance()->search($mn);
 			if($isin == false)
@@ -885,12 +677,12 @@ class TradingBot
 				continue;
 			}
 			$label = StockInd::getInstance()->searchLabel($isin);
-			$Indicators[$isin] = self::BestIndicator($ya);
 			$Indicators[$isin]['_AutoLabel'] = ucwords($label);
 			$Indicators[$isin]['_AutoMnemo'] = $mn;
-			print_r($Indicators);
+			$Indicators[$isin] = self::BestIndicator($ya);
+// 			print_r($Indicators);
 		}
-		file_put_contents(self::EXTERNAL_INDICATORS, '<?php'."\n".'$Indicators = '.var_export($Indicators, true).';'."\n".'?>');
+		file_put_contents(self::EXTERNAL_INDICATORS, '<?php'."\n".'// Généré le '.date('d/m/Y à H:i:s')."\n".'$Indicators = '.var_export($Indicators, true).';'."\n".'?>');
 		return true;
 	}
 	public static function getExternalIndicators()
