@@ -37,8 +37,9 @@ try{
 		}
 		
 		$T	
-// 			->GlobalParams('BeneficeMinimal', '7.5%')
-// 			->GlobalParams('SeuilPolicy', '2.5%')
+// 			->GlobalParams('StopLoss', false)
+			->GlobalParams('BeneficeMinimal', '15%')
+			->GlobalParams('SeuilPolicy', '5%')
 			// Add other specific params here...
 			// ->IsinParams('Michelin', 'BeneficeMinimal', '8%')
 			;

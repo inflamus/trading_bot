@@ -115,12 +115,12 @@ class TradingBot
 	const SOMME_MINIMALE = '1000 €';
 	const FRAIS_BOURSIERS = '0.9%';
 	// Vente auto
-	const BENEFICE_MINIMAL = '5%'; // le benefice minimal a partir duquel la question du seuil doit se poser.
+	const BENEFICE_MINIMAL = '15%'; // le benefice minimal a partir duquel la question du seuil doit se poser.
 	const SEUIL_EXPIRE_WEEKS = 1;
 	// Les seuils se calculent selon cours actuel - {$seuil}% 
 	// eg : action à 100eur, trois seuils à 5% 6% et 7% :
 	// => seuils à 95, 94 et 93euros.
-	const SEUIL_POLICY = '2.8%;3.5%'; // multiple seuils allowed, splited with ";". eg: 5%;5.5%;6%
+	const SEUIL_POLICY = '4%;5%'; // multiple seuils allowed, splited with ";". eg: 5%;5.5%;6%
 	const POLICY_PRIORITY = 'ASC'; // ASC = la priorité est le seuil le plus proche du cours. => maximise les benefices
 									// DESC = la priorité est au seuil le plus lointain. => moins d'ordres executés.
 	const STOPLOSS = true; // par défaut, mettre des stoploss
@@ -218,11 +218,14 @@ class TradingBot
 		return $this;
 	}
 	
-	public function IsinParams($isin, $key, $val)
+	public function IsinParams($isin, $key, $val, $append = false)
 	{
 		if(!$this->CM->isISIN($isin))
 			throw new Exception('Wrong ISIN ['.$isin.']');
-		$this->ByISINParams[$isin][$key] = $val;
+		if($append)
+			$this->ByISINParams[$isin][$key] .= $val;
+		else
+			$this->ByISINParams[$isin][$key] = $val;
 		return $this;
 	}
 	
@@ -349,8 +352,8 @@ class TradingBot
 			print 'ACHAT '.$nominal.' '.$stock->stock.' ['.$isin.'] au dernier cours ('.$stock->getLast().'€)'."\n";
 			
 		$this->CM->Ordre($isin)->Achat($nominal)
-		->AuDernierCours($stock->getLast()) // pass this arg for simulator compatibility
-// 		->ACoursLimite($stock->getLast()) // For Simulator
+// 		->AuDernierCours($stock->getLast()) // pass this arg for simulator compatibility
+		->ACoursLimite($stock->getLast()) // For Simulator
 		->Jour()->Exec();
 		return $this;
 	}
@@ -477,7 +480,6 @@ class TradingBot
 
 	// Indicateurs Generator 
 	// TODO : Detecter le benefice minimal
-	// TODO : Detecter par la volatilité moyenne le seuilPolicy
 	public static function BestIndicator($action, $days = 500, $seuil = '6%')
 	{
 		if(is_array($action))
@@ -487,8 +489,12 @@ class TradingBot
 			return $re;
 		}
 		
-		$STO = new Stock($action, 'd', Stock::PROVIDER_YAHOO, floor($days/260)); // cache last data yahoo data.
-		$Volatility = $STO->Analysis()->Volatility();
+		$STO = new Stock($action, 'd', Stock::PROVIDER_YAHOO/*, floor($days/260)*/); // cache last data yahoo data.
+		// Calcule la Volatilité relative sur la dernière année.
+		$STO = $STO->Slice(-260)->Analysis();
+		$Volatility = $STO->Volatility()*100 / $STO->Moyenne();
+// 		$TrueVol = $STO->TrueVolatility();
+// 		print $Volatility.' '.$TrueVol;
 		unset($STO);
 		
 		$indics = array(
@@ -633,7 +639,8 @@ class TradingBot
 		file_put_contents($file, implode('|', $pwr).','.$isin.','.$mn."\n", FILE_APPEND);
 		return array(
 			'IndicateurAchat' => implode('|', $pwr),
-// 			'SeuilPolicy' => round($Volatility*100, 2),
+// 			'SeuilPolicy' => $TrueVol.'%',
+			'SeuilPolicy' => round($Volatility/2, 2).'%',
 // 			'SeuilPolicy2' => $std,
 		);
 // 			if($p['rstdev'] > .3) //30% de divergences à la moyenne
@@ -677,9 +684,9 @@ class TradingBot
 				continue;
 			}
 			$label = StockInd::getInstance()->searchLabel($isin);
+			$Indicators[$isin] = self::BestIndicator($ya);
 			$Indicators[$isin]['_AutoLabel'] = ucwords($label);
 			$Indicators[$isin]['_AutoMnemo'] = $mn;
-			$Indicators[$isin] = self::BestIndicator($ya);
 // 			print_r($Indicators);
 		}
 		file_put_contents(self::EXTERNAL_INDICATORS, '<?php'."\n".'// Généré le '.date('d/m/Y à H:i:s')."\n".'$Indicators = '.var_export($Indicators, true).';'."\n".'?>');
