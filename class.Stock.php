@@ -237,7 +237,7 @@ class Stock extends StockCache implements Iterator
 	const PROVIDER_CACHE = 'CacheStock';
 	
 	public static $YahooSBF120 = array('SOLB.BR', 'LHN.PA','AF.PA','VCT.PA', 'ALT.PA', 'ICAD.PA', 'MON.PA', 'ERF.PA', 'BOL.PA', 'NEX.PA', 'ACA.PA', 'SOP.PA', 'MAU.PA', 'ATO.PA', 'RCF.PA', 'RMS.PA', 'MMT.PA', 'DIM.PA', 'UBI.PA', 'TFI.PA', 'FDR.PA', 'ATE.PA', 'SAF.PA', 'IPS.PA', 'DEC.PA', 'AI.PA', 'CGG.PA', 'CA.PA', 'CNP.PA', 'FP.PA', 'OR.PA', 'VK.PA', 'AC.PA', 'EN.PA', 'NEO.PA', 'SAN.PA', 'CS.PA', 'BN.PA', 'KN.PA', 'RI.PA', 'NK.PA', 'BB.PA', 'MC.PA', 'RF.PA', 'EO.PA', 'MF.PA', 'SW.PA', 'RUI.PA', 'ML.PA', 'HO.PA', 'KER.PA', 'UG.PA', 'EI.PA', 'SK.PA', 'HAV.PA', 'LI.PA', 'SU.PA', 'VIE.PA', 'POM.PA', 'UL.PA', 'SGO.PA', 'CAP.PA', 'ING.PA', 'DG.PA', 'CO.PA', 'ZC.PA', 'VIV.PA', /*'ALU.PA',*/ 'MMB.PA', 'FR.PA', 'RCO.PA', 'FGR.PA', 'PUB.PA', 'DSY.PA', 'GLE.PA', 'BNP.PA', 'TEC.PA', 'RNO.PA', 'ORA.PA', 'ORP.PA', 'ILD.PA', 'GNFT.PA', 'ELE.PA', 'BVI.PA', 'GFC.PA', 'BIM.PA', 'NXI.PA', 'SAFT.PA', 'ENGI.PA', 'ALO.PA', 'ETL.PA', 'MERY.PA', 'EDF.PA', 'IPN.PA', 'LR.PA', 'AKE.PA', 'IPH.PA', 'ADP.PA', 'KORI.PA', 'SCR.PA', 'DBV.PA', 'RXL.PA', 'GET.PA', 'SEV.PA', 'COFA.PA', 'EDEN.PA', 'TCH.PA', 'ADOC.PA', 'NUM.PA', 'GTT.PA', 'ELIOR.PA', 'ELIS.PA', 'EUCAR.PA', 'SESG.PA', 'MT.PA', 'APAM.AS', 'STM.PA', 'AIR.PA', 'GTO.PA', 'ENX.PA', /*'ALFIG.PA', 'SRP.PA',*/ 'CDI.PA');
-	public static $YahooCAC40 = array('AC.PA', 'ACA.PA', 'AI.PA', 'AIR.PA', 'ALO.PA', 'BN.PA', 'BNP.PA', 'CA.PA', 'CAP.PA', 'CS.PA', 'DG.PA', 'EI.PA', 'EN.PA', 'ENGI.PA', 'FP.PA', 'FR.PA', 'GLE.PA', 'KER.PA', 'LHN.PA', 'LI.PA', 'LR.PA', 'MC.PA', 'ML.PA', 'MT.PA', /*'NOKIA.PA',*/ 'OR.PA', 'ORA.PA', 'PUB.PA', 'RI.PA', 'RNO.PA', 'SAF.PA', 'SAN.PA', 'SGO.PA', 'SOLB.BR', 'SU.PA', 'TEC.PA', 'UG.PA', 'UL.PA', 'VIE.PA', 'VIV.PA');
+	public static $YahooCAC40 = array('AC.PA', 'ACA.PA', 'AI.PA', 'AIR.PA', 'ALO.PA', 'BN.PA', 'BNP.PA', 'CA.PA', 'CAP.PA', 'CS.PA', 'DG.PA', 'EI.PA', 'EN.PA', 'ENGI.PA', 'FP.PA', 'FR.PA', 'GLE.PA', 'KER.PA'/*, 'LHN.PA'*/, 'LI.PA', 'LR.PA', 'MC.PA', 'ML.PA', 'MT.PA', /*'NOKIA.PA',*/ 'OR.PA', 'ORA.PA', 'PUB.PA', 'RI.PA', 'RNO.PA', 'SAF.PA', 'SAN.PA', 'SGO.PA', 'SOLB.BR', 'SU.PA', 'TEC.PA', 'UG.PA', 'UL.PA', 'VIE.PA', 'VIV.PA');
 
 	public 	$stock = '';
 	private	$data = array(
@@ -805,6 +805,21 @@ class StockAnalysis
 		return $BB;
 	}
 	
+	public function SAR($acc = .02, $max = .2)
+	{
+		$SAR = trader_sar($this->buildData('High'), $this->buildData('Low'), $acc, $max);
+		if(end($SAR) < end($this->cache))
+			if(prev($SAR) > prev($this->cache))
+				return 1;// achat lorsque le SAR passe sous le cours
+			else
+				return 0; // sinon conserver, la tendance du sar est inchangée
+		else
+			if(prev($SAR) < prev($this->cache))
+				return -1;
+			else
+				return 0;
+	}
+	
 	public function Trix($period = 8)
 	{
 		$trix = trader_trix(array_slice($this->cache, $period *-3), $period);
@@ -1046,11 +1061,18 @@ class StockAnalysis
 		//TODO : Interpret Divergences
 	}
 	
-// 	public function Beta(Stock $CAC40)
-// 	{
-// 		return trader_beta($this->cache, $CAC40->Analysis()->buildData('A'), 900);
-// 		
-// 	}
+	public function Beta(Stock $CAC40)
+	{
+// 		var_dump($CAC40);
+		$m = array();
+		foreach($CAC40 as $d)
+			$m[] = $d;
+		return standard_covariance(array_values($this->cache), $m)*100 / variance($m);
+		
+// 		$beta = trader_beta($this->cache, $m, count($m)-1);
+// 		return end($beta)*100;
+		
+	}
 	
 	// Results seems weird...
 // 	public function Benchmark()
@@ -1154,4 +1176,26 @@ class StockAnalysis
 // 		$D['best'] = $best;
 // 		return $D;
 // 	}
+}
+
+function standard_covariance(Array $aValues, Array $bValues)
+{
+	$a= (array_sum($aValues)*array_sum($bValues))/count($aValues);
+	$ret = array();
+	for($i=0;$i<count($aValues);$i++)
+	{
+		$ret[$i]=$aValues[$i]*$bValues[$i];
+	}
+	$b=(array_sum($ret)-$a)/(count($aValues)-1);        
+	return (float) $b;
+}
+function variance($aValues, $bSample = false){
+$fMean = array_sum($aValues) / count($aValues);
+$fVariance = 0.0;
+foreach ($aValues as $i)
+{
+$fVariance += pow($i - $fMean, 2);
+}
+$fVariance /= ( $bSample ? count($aValues) - 1 : count($aValues) );
+return $fVariance;
 }

@@ -146,18 +146,18 @@ class TradingBot
 				);
 		*/
 		// See more benchmarks https://docs.google.com/spreadsheets/d/1ekQSj2Y0468rR16UQAm1m702RulnPcs4Bcezd-N98wI/edit
-		'FR0000120073' => array( // Air Liquide [AI]
-			'IndicateurAchat' => 'RSI&LongStochastic|SignalMACD&CCI&VolumesOscillator' //|RSI&Stochastic specific buy signal
-			),
+// 		'FR0000120073' => array( // Air Liquide [AI]
+// 			'IndicateurAchat' => 'RSI&LongStochastic|SignalMACD&CCI&VolumesOscillator' //|RSI&Stochastic specific buy signal
+// 			),
 		'FR0000121667' => array( // Essilor [EI]
 			'IndicateurAchat' => 'RSI&Williams|CCI&RSI|RSI&Stochastic',
 			),
 		'FR0000120578' => array( // Sanofi [SAN]
 			'IndicateurAchat' => 'CCI&SignalMACD&VolumesOscillator' // Aucun
 			),
-		'FR0000120222' => array( // CNP Assurances [CNP]
-			'IndicateurAchat' => 'RSI&LongStochastic|SignalMACD&CCI&VolumesOscillator' // Aucun
-			),
+// 		'FR0000120222' => array( // CNP Assurances [CNP]
+// 			'IndicateurAchat' => 'RSI&LongStochastic|SignalMACD&CCI&VolumesOscillator' // Aucun
+// 			),
 		'FR0004035913' => array( // Iliad [ILD]
 			'IndicateurAchat' => 'RSI&LongStochastic|RSI&CCI&VolumesOscillator'
 			),
@@ -228,6 +228,17 @@ class TradingBot
 			$this->ByISINParams[$isin][$key] = $val;
 		return $this;
 	}
+	/*
+	public function BuildWatchlist($list = Stock::$YahooSBF120)
+	{
+		$CAC40 = new Stock(YahooStock::CAC40);
+		foreach($list as $act)
+		{
+			//TODO pondérer avec la valeur du Beta, portefeuille management.
+			$this->Watchlist(new Stock($act));
+		}
+		return $this;
+	}*/
 	
 	public function Watchlist(Stock $stock, $isin = '', $sens='A')
 	{
@@ -235,7 +246,7 @@ class TradingBot
 		{
 			$isin = strstr($stock->stock, '.', true);
 			if(!$this->CM->isISIN($isin))
-				throw new Exception('Wrong ISIN');
+				throw new Exception('Wrong ISIN ['.$isin.']');
 		}
 		if(is_string($sens) && (strtolower($sens[0])=='v' || strtolower($sens[0])=='s'))
 			$sens = -1;
@@ -526,6 +537,12 @@ class TradingBot
 // 			array('SignalMACD', 'VolumesOscillator'),
 	// 		array('SignalMACD', 'CCI'),
 			array('SignalMACD', 'CCI', 'VolumesOscillator'),
+// 			array('SAR'),
+			array('SAR', 'Williams'),
+			array('SAR', 'CCI'), // CCI&SAR && SAR&SignalMACD are comparable...
+			array('SAR', 'SignalMACD'),
+			array('SAR', 'VolumesOscillator'),
+// 			array('SAR', 'Stochastic'), // useless
 			);
 		if(!file_exists( $file = __METHOD__ . '.csv' ))
 		{
@@ -690,6 +707,7 @@ class TradingBot
 // 			print_r($Indicators);
 		}
 		file_put_contents(self::EXTERNAL_INDICATORS, '<?php'."\n".'// Généré le '.date('d/m/Y à H:i:s')."\n".'$Indicators = '.var_export($Indicators, true).';'."\n".'?>');
+		
 		return true;
 	}
 	public static function getExternalIndicators()
