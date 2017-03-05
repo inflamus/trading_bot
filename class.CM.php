@@ -17,9 +17,20 @@ interface Broker
 {
 	public function isISIN(&$i);
 	public function Valorisation($getraw = false);
+	public function Ordre();
 }
 interface _OrdreEnCours 
 {
+}
+interface _Ordre
+{
+	public function Achat(/*TODO : args*/);
+	public function Vendre();
+	public function ASeuil();
+	public function APlage();
+	public function ACoursLimite();
+	public function AuMarche();
+	public function Exec();
 }
 class SimulatorAccount
 {
@@ -218,7 +229,8 @@ class SimulatorAccount
 	
 	public function __toString()
 	{
-		return $this->cash.'€'."\n Portefeuille : ".print_r($this->portefeuille, true);
+		return $this->cash.'€'."\n Portefeuille : ".print_r($this->portefeuille, true). "\n".
+			'Total = '.($this->cash + array_sum(array_map(function($a){ return $a['ValueInEur'];}, $this->portefeuille))).'€';
 	}
 	public static function getInstance()
 	{
@@ -248,7 +260,7 @@ class Simulator implements Broker
 		}
 		return $re;
 	}
-	public function Ordre($isin)
+	public function Ordre($isin=null)
 	{
 		return new OrdreSimulator($isin);
 	}
@@ -418,6 +430,7 @@ class Webservice
 			$context['http']['method'] = 'GET';
 		else
 		{
+			$context['http']['Content-type'] = 'application/x-www-form-urlencoded';
 			$context['http']['method'] = 'POST';
 			$context['http']['content'] = http_build_query(array_merge((array)$data, $this->PostData));
 // 			print $context['http']['content'];
@@ -530,21 +543,12 @@ class CreditMutuel extends Webservice implements Broker
 	
 	public function isISIN(&$i)
 	{
-		if(preg_match(self::ISIN_REGEX, $i))
-			return true;
-		// Optionnal
 		if(!class_exists('StockInd'))
 			if(is_readable('class.StockInd.php'))
 				require_once('class.StockInd.php');
 			else
 				return false; // couldn't search for indice in DB
-		// Try to correct ISIN by reference, searching into DB by Stock label, or Mnemo.
-		if(($re = StockInd::getInstance()->search($i)) !== false)
-		{
-			$i = $re;
-			return true;
-		}
-		return false;
+		return StockInd::isISIN($i);
 	}
 	
 	/*

@@ -73,7 +73,7 @@ class YahooStock implements StockProvider
 		return $this;
 	}
 	
-	public function To($y, $m=1, $m=1)
+	public function To($y, $m=1, $e=1)
 	{
 		if(is_string($y))
 			$y = explode('-', $y);
@@ -236,8 +236,8 @@ class Stock extends StockCache implements Iterator
 	const PROVIDER_YAHOO = 'YahooStock';
 	const PROVIDER_CACHE = 'CacheStock';
 	
-	public static $YahooSBF120 = array('SOLB.BR', 'LHN.PA','AF.PA','VCT.PA', 'ALT.PA', 'ICAD.PA', 'MON.PA', 'ERF.PA', 'BOL.PA', 'NEX.PA', 'ACA.PA', 'SOP.PA', 'MAU.PA', 'ATO.PA', 'RCF.PA', 'RMS.PA', 'MMT.PA', 'DIM.PA', 'UBI.PA', 'TFI.PA', 'FDR.PA', 'ATE.PA', 'SAF.PA', 'IPS.PA', 'DEC.PA', 'AI.PA', 'CGG.PA', 'CA.PA', 'CNP.PA', 'FP.PA', 'OR.PA', 'VK.PA', 'AC.PA', 'EN.PA', 'NEO.PA', 'SAN.PA', 'CS.PA', 'BN.PA', 'KN.PA', 'RI.PA', 'NK.PA', 'BB.PA', 'MC.PA', 'RF.PA', 'EO.PA', 'MF.PA', 'SW.PA', 'RUI.PA', 'ML.PA', 'HO.PA', 'KER.PA', 'UG.PA', 'EI.PA', 'SK.PA', 'HAV.PA', 'LI.PA', 'SU.PA', 'VIE.PA', 'POM.PA', 'UL.PA', 'SGO.PA', 'CAP.PA', 'ING.PA', 'DG.PA', 'CO.PA', 'ZC.PA', 'VIV.PA', /*'ALU.PA',*/ 'MMB.PA', 'FR.PA', 'RCO.PA', 'FGR.PA', 'PUB.PA', 'DSY.PA', 'GLE.PA', 'BNP.PA', 'TEC.PA', 'RNO.PA', 'ORA.PA', 'ORP.PA', 'ILD.PA', 'GNFT.PA', 'ELE.PA', 'BVI.PA', 'GFC.PA', 'BIM.PA', 'NXI.PA', 'SAFT.PA', 'ENGI.PA', 'ALO.PA', 'ETL.PA', 'MERY.PA', 'EDF.PA', 'IPN.PA', 'LR.PA', 'AKE.PA', 'IPH.PA', 'ADP.PA', 'KORI.PA', 'SCR.PA', 'DBV.PA', 'RXL.PA', 'GET.PA', 'SEV.PA', 'COFA.PA', 'EDEN.PA', 'TCH.PA', 'ADOC.PA', 'NUM.PA', 'GTT.PA', 'ELIOR.PA', 'ELIS.PA', 'EUCAR.PA', 'SESG.PA', 'MT.PA', 'APAM.AS', 'STM.PA', 'AIR.PA', 'GTO.PA', 'ENX.PA', /*'ALFIG.PA', 'SRP.PA',*/ 'CDI.PA');
-	public static $YahooCAC40 = array('AC.PA', 'ACA.PA', 'AI.PA', 'AIR.PA', 'ALO.PA', 'BN.PA', 'BNP.PA', 'CA.PA', 'CAP.PA', 'CS.PA', 'DG.PA', 'EI.PA', 'EN.PA', 'ENGI.PA', 'FP.PA', 'FR.PA', 'GLE.PA', 'KER.PA'/*, 'LHN.PA'*/, 'LI.PA', 'LR.PA', 'MC.PA', 'ML.PA', 'MT.PA', /*'NOKIA.PA',*/ 'OR.PA', 'ORA.PA', 'PUB.PA', 'RI.PA', 'RNO.PA', 'SAF.PA', 'SAN.PA', 'SGO.PA', 'SOLB.BR', 'SU.PA', 'TEC.PA', 'UG.PA', 'UL.PA', 'VIE.PA', 'VIV.PA');
+	public static $YahooSBF120 = array('SOLB.BR', 'LHN.PA', 'AF.PA', 'VCT.PA', 'ALT.PA', /*'ICAD.PA',*/ 'ERF.PA', 'BOL.PA', 'NEX.PA', 'ACA.PA', 'SOP.PA', 'MAU.PA', 'ATO.PA', 'RCF.PA', 'RMS.PA', 'MMT.PA', 'DIM.PA', 'UBI.PA', 'TFI.PA', 'FDR.PA', 'ATE.PA', 'SAF.PA', 'IPS.PA', 'DEC.PA', 'AI.PA', 'CGG.PA', 'CA.PA', 'CNP.PA', 'FP.PA', 'OR.PA', 'VK.PA', 'AC.PA', 'EN.PA', 'NEO.PA', 'SAN.PA', 'CS.PA', 'BN.PA', 'KN.PA', 'RI.PA', 'NK.PA', 'BB.PA', 'MC.PA', 'RF.PA', 'EO.PA', 'MF.PA', 'SW.PA', 'RUI.PA', 'ML.PA', 'HO.PA', 'KER.PA', 'UG.PA', 'EI.PA', 'SK.PA', 'HAV.PA', 'LI.PA', 'SU.PA', 'VIE.PA', 'POM.PA', 'UL.PA', 'SGO.PA', 'CAP.PA', 'ING.PA', 'DG.PA', 'CO.PA', 'ZC.PA', 'VIV.PA', /*'ALU.PA',*/ 'MMB.PA', /*'FR.PA', */'RCO.PA', 'FGR.PA', 'PUB.PA', 'DSY.PA', 'GLE.PA', 'BNP.PA', 'TEC.PA', 'RNO.PA', 'ORA.PA', 'ORP.PA', 'ILD.PA', 'AMUN.PA', 'GNFT.PA', 'ELE.PA', 'BVI.PA', 'GFC.PA', 'BIM.PA', 'NXI.PA', 'SAFT.PA', 'ENGI.PA', 'ALO.PA', 'ETL.PA', 'MERY.PA', 'EDF.PA', 'IPN.PA', 'LR.PA', 'AKE.PA', 'IPH.PA', 'ADP.PA', 'KORI.PA', 'SCR.PA', 'DBV.PA', 'RXL.PA', 'GET.PA', 'SEV.PA', 'EDEN.PA', 'TCH.PA', 'NUM.PA', 'GTT.PA', 'ELIOR.PA', 'WLN.PA', 'ELIS.PA', 'SPIE.PA', 'EUCAR.PA', /*'SESG.PA',*/ 'MT.PA', 'APAM.AS','STM.PA', 'AIR.PA', 'GTO.PA', 'ENX.PA', 'CDI.PA', 'NOKIA.PA');
+	public static $YahooCAC40 = array('AC.PA', 'ACA.PA', 'AI.PA', 'AIR.PA', 'ALO.PA', 'BN.PA', 'BNP.PA', 'CA.PA', 'CAP.PA', 'CS.PA', 'DG.PA', 'EI.PA', 'EN.PA', 'ENGI.PA', 'FP.PA', /*'FR.PA',*/ 'GLE.PA', 'KER.PA'/*, 'LHN.PA'*/, 'LI.PA', 'LR.PA', 'MC.PA', 'ML.PA', 'MT.PA', /*'NOKIA.PA',*/ 'OR.PA', 'ORA.PA', 'PUB.PA', 'RI.PA', 'RNO.PA', 'SAF.PA', 'SAN.PA', 'SGO.PA', 'SOLB.BR', 'SU.PA', 'TEC.PA', 'UG.PA', 'UL.PA', 'VIE.PA', 'VIV.PA');
 
 	public 	$stock = '';
 	private	$data = array(
@@ -757,15 +757,15 @@ class StockAnalysis
 		$R = end($RSI);
 		if($R < 50)
 			if(prev($RSI)<$limbasse && $R > $limbasse) // a franchi a la hausse le seuil de survente
-				return 2;
-			elseif($R < $limbasse-10)
+// 				return 2;
+// 			elseif($R < $limbasse+10)
 				return 1;
 			else
 				return 0;
-			else
+		else
 			if(prev($RSI)>$limhaute && $R < $limhaute)
-				return -2;
-			elseif($R > $limhaute -10)
+// 				return -2;
+// 			elseif($R > $limhaute -10)
 				return -1;
 			else
 				return 0;
@@ -778,6 +778,30 @@ class StockAnalysis
 	public function SlowRSI()
 	{
 		return $this->RSI(25);
+	}
+	public function RSI35()
+	{
+		return $this->RSI(14, 35);
+	}
+	public function RSI40()
+	{
+		return $this->RSI(14, 40);
+	}
+	public function FastRSI35()
+	{
+		return $this->RSI(9, 35);
+	}
+	public function SlowRSI35()
+	{
+		return $this->RSI(25, 35);
+	}
+	public function FastRSI40()
+	{
+		return $this->RSI(9, 40);
+	}
+	public function SlowRSI40()
+	{
+		return $this->RSI(25, 40);
 	}
 	
 	public function RegressionLineaire($data)
@@ -815,7 +839,7 @@ class StockAnalysis
 				return 0; // sinon conserver, la tendance du sar est inchangée
 		else
 			if(prev($SAR) < prev($this->cache))
-				return -1;
+				return -1;//idem à la vente
 			else
 				return 0;
 	}
@@ -937,6 +961,10 @@ class StockAnalysis
 	public function VolumeOscillator($short = 5,$long=20)
 	{
 		return $this->VolumesOscillator($short,$long);
+	}
+	public function LongVolumesOscillator()
+	{
+		return $this->VolumesOscillator(14, 28);
 	}
 	
 	public function Candle()

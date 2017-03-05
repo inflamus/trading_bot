@@ -489,9 +489,8 @@ class TradingBot
 			unset($t);
 	}
 
-	// Indicateurs Generator 
-	// TODO : Detecter le benefice minimal
-	public static function BestIndicator($action, $days = 500, $seuil = '6%')
+	// Indicateur, $seuil = '6%'s Generator 
+	public static function BestIndicator($action, $days = 500/*, $seuil = '6%'*/)
 	{
 		if(is_array($action))
 		{
@@ -499,166 +498,574 @@ class TradingBot
 			$re[] = self::BestIndicator($action, $days, $seuil);
 			return $re;
 		}
-		
-		$STO = new Stock($action, 'd', Stock::PROVIDER_YAHOO/*, floor($days/260)*/); // cache last data yahoo data.
+		$STO = new Stock($action, 'd', Stock::PROVIDER_CACHE/*, floor($days/260)*/); // cache last data yahoo data.
 		// Calcule la Volatilité relative sur la dernière année.
-		$STO = $STO->Slice(-260)->Analysis();
-		$Volatility = $STO->Volatility()*100 / $STO->Moyenne();
-// 		$TrueVol = $STO->TrueVolatility();
-// 		print $Volatility.' '.$TrueVol;
+		$STO = $STO->Slice($days*-1)->Analysis();
+		$SeuilPolicy = ($STO->Volatility() / $STO->Moyenne());// /2 
 		unset($STO);
 		
-		$indics = array(
-	// 		array('Williams'),
-	// 		array('Williams', 'VolumesOscillator'),
-	// 		array('Candle'), 
-			array('RSI'), // Works better on AF, ORA
-			array('RSI','VolumesOscillator'),
-	// 		array('Stochastic'), // Worst than LongStochastic
-	// 		array('LongStochastic'), // Better than Stochastic
-			/*array('Williams','Candle'),  ben ~ 6% , ecartype proche de la moyenne*/  
-			/*array('RSI', 'Williams', 'Candle'), ~never popped*/ 
-			array('RSI', 'Stochastic'),  // 2nd position // Marche mieux sur FP qu'avec le longstoch
-	// 		array('RSI', 'Stochastic', 'VolumesOscillator'),
-			array('RSI', 'LongStochastic'), // Provisoirement le meilleur, marche mieux sur AF, ORA. Moins bien sur FP. CDI ok
-			array('CCI', 'Stochastic'), // Test
-	// 		array('RSI', 'LongStochastic', 'Williams'), //May be more selective on AF
-			/*array('RSI', 'Candle'),*/ 
-	// 		array('MACD'), //
-	// 		array('MACD', 'Candle'), // Ecart type trop proche dela moyenne, résultats trop disparates entre les actions.
-			/*array('MACD', 'RSI'), never popped, or ~7%*/ 
-			/*array('MACD', 'Stochastic')*/ // Trop disparate comme résultats, ecart type > moyenne !!
-			array('RSI', 'Williams'), // Useful for Essilor as
-	// 		array('CCI'), // commodities channel index
-// 			array('CCI', 'VolumesOscillator'),
-	// 		array('CCI', 'RSI'),
-			array('CCI','RSI','VolumesOscillator'),
-	// 		array('SignalMACD'),
-// 			array('SignalMACD', 'VolumesOscillator'),
-	// 		array('SignalMACD', 'CCI'),
+		/*
+		 *
+		 * Build Indicators array
+		 *
+		 *
+		 */
+		$indics = array();
+		$Indics = array(
+			array('RSI', /*'RSI35', 'RSI40', 'FastRSI', 'FastRSI35', 'FastRSI40', 'SlowRSI', 'SlowRSI35', 'SlowRSI40'*/),
+			array('SignalMACD'),
+			array('CCI'),
+			array('Williams', 'Stochastic', 'LongStochastic'),
+			array('Candle'),
+			array('SAR'),
+			array('VolumesOscillator'/*, 'LongVolumesOscillator'*/),
+			);
+		
+		// Flat indicators
+		$_indics = array();
+	    array_walk_recursive($Indics, function($a) use (&$_indics) { $_indics[] = $a; });
+	    $_indics = array_unique($_indics);
+	    
+		for($i=0; $i<count($_indics); $i++)
+	    {
+			if($_indics[$i] != 'VolumesOscillator' && $_indics[$i] != 'LongVolumesOscillator')
+				$indics[] = array($_indics[$i]);
+			for($ii=$i; $ii<count($_indics); $ii++)
+			{
+				for($iii=$ii; $iii<count($_indics); $iii++)
+				{
+					if($i!=$ii && $iii!=$ii)
+					{
+						foreach($Indics as $ind)
+							if((in_array($_indics[$i], $ind) && in_array($_indics[$ii], $ind) )||  (in_array($_indics[$iii], $ind) && in_array($_indics[$ii], $ind)) || (in_array($_indics[$i], $ind) && in_array($_indics[$iii], $ind)) )
+								continue 2;
+						$indics[] = array($_indics[$i], $_indics[$ii], $_indics[$iii]);
+					}
+				}
+				if($i!=$ii)
+				{
+					foreach($Indics as $ind)
+						if(in_array($_indics[$i], $ind) && in_array($_indics[$ii], $ind))
+							continue 2;
+					$indics[] = array($_indics[$i], $_indics[$ii]);
+				}
+			}
+	    }
+	    // And sorting by complexity, from 1 indicator to 3.
+	    uasort($indics, function($a, $b){ return count($a)<count($b) ? -1 : 1;});
+
+/*		$indics = array( // OBSOLETE,  AUTO GENERATED ABOVE
+			//RSI seul en mode Buy sur sortie de survente, plusieurs sensibilités.
+			array('RSI'), // 14 30 70
+			array('RSI35'), // 14 35 70
+			array('RSI40'), // 14 40 70
+			array('FastRSI'), // 9 30 70
+			array('SlowRSI'), // 25 30 70
+			array('FastRSI35'), // 9 35 70
+			array('FastRSI40'), // 9 40 70
+			array('SlowRSI35'), // 25 35 70
+			array('SlowRSI40'), // 25 40 70
+			//Williams
+			array('Williams'),
+			//Candle
+			array('Candle'), 
+			//Stochastic
+			array('Stochastic'),
+			//LongStochastic
+			array('LongStochastic'),
+			//CCI
+			array('CCI'),
+			//SignalMACD
+			array('SignalMACD'),
+			//SAR
+			array('SAR'),
+			
+			//-----2 passes
+			//-------------
+			// VolumesOscillator
+			array('Williams', 'VolumesOscillator'),
+			array('Candle', 'VolumesOscillator'),
+			array('Stochastic', 'VolumesOscillator'),
+			array('LongStochastic', 'VolumesOscillator'),
+			array('CCI', 'VolumesOscillator'),
+			array('SignalMACD', 'VolumesOscillator'),
+			array('SAR', 'VolumesOscillator'),
+			array('RSI', 'VolumesOscillator'),
+			array('RSI35', 'VolumesOscillator'),
+			array('RSI40', 'VolumesOscillator'),
+			array('FastRSI', 'VolumesOscillator'),
+			array('FastRSI35', 'VolumesOscillator'),
+			array('FastRSI40', 'VolumesOscillator'),
+			array('SlowRSI', 'VolumesOscillator'),
+			array('SlowRSI35', 'VolumesOscillator'),
+			array('SlowRSI40', 'VolumesOscillator'),
+			// LongVolumes
+			array('Williams', 'LongVolumesOscillator'),
+			array('Candle', 'LongVolumesOscillator'),
+			array('Stochastic', 'LongVolumesOscillator'),
+			array('LongStochastic', 'LongVolumesOscillator'),
+			array('CCI', 'LongVolumesOscillator'),
+			array('SignalMACD', 'LongVolumesOscillator'),
+			array('SAR', 'LongVolumesOscillator'),
+			array('RSI', 'LongVolumesOscillator'),
+			array('RSI35', 'LongVolumesOscillator'),
+			array('RSI40', 'LongVolumesOscillator'),
+			array('FastRSI', 'LongVolumesOscillator'),
+			array('FastRSI35', 'LongVolumesOscillator'),
+			array('FastRSI40', 'LongVolumesOscillator'),
+			array('SlowRSI', 'LongVolumesOscillator'),
+			array('SlowRSI35', 'LongVolumesOscillator'),
+			array('SlowRSI40', 'LongVolumesOscillator'),
+			//Williams
+			array('Candle', 'Williams'),
+			array('CCI', 'Williams'),
+			array('Stochastic', 'Williams'),
+			array('LongStochastic', 'Williams'),
+			array('SignalMACD', 'Williams'),
+			array('SAR', 'Williams'),
+			array('RSI', 'Williams'), 
+			array('RSI35', 'Williams'),
+			array('RSI40', 'Williams'),
+			array('FastRSI', 'Williams'),
+			array('FastRSI35', 'Williams'),
+			array('FastRSI40', 'Williams'),
+			array('SlowRSI', 'Williams'),
+			array('SlowRSI35', 'Williams'),
+			array('SlowRSI40', 'Williams'),
+			// Stochastic
+			array('RSI', 'Stochastic'),
+			array('RSI35', 'Stochastic'),
+			array('RSI40', 'Stochastic'),
+			array('FastRSI', 'Stochastic'),
+			array('SlowRSI', 'Stochastic'),
+			array('FastRSI35', 'Stochastic'),
+			array('SlowRSI35', 'Stochastic'),
+			array('FastRSI40', 'Stochastic'),
+			array('SlowRSI40', 'Stochastic'),
+			array('Candle', 'Stochastic'),
+			array('SignalMACD', 'Stochastic'),
+			array('CCI', 'Stochastic'),
+			array('SAR', 'Stochastic'),
+			//LongStochastic
+			array('RSI', 'LongStochastic'),
+			array('RSI35', 'LongStochastic'),
+			array('RSI40', 'LongStochastic'),
+			array('FastRSI', 'LongStochastic'),
+			array('FastRSI35', 'LongStochastic'),
+			array('FastRSI40', 'LongStochastic'),
+			array('SlowRSI', 'LongStochastic'),
+			array('SlowRSI35', 'LongStochastic'),
+			array('SlowRSI40', 'LongStochastic'),
+			array('Candle', 'LongStochastic'),
+			array('SignalMACD', 'LongStochastic'),
+			array('CCI', 'LongStochastic'),
+			array('SAR', 'LongStochastic'),
+			//CCI
+			array('RSI', 'CCI'),
+			array('RSI35', 'CCI'),
+			array('RSI40', 'CCI'),
+			array('FastRSI', 'CCI'),
+			array('FastRSI35', 'CCI'),
+			array('FastRSI40', 'CCI'),
+			array('SlowRSI', 'CCI'),
+			array('SlowRSI35', 'CCI'),
+			array('SlowRSI40', 'CCI'),
+			array('Candle', 'CCI'),
+			array('SignalMACD', 'CCI'),
+			array('SAR', 'CCI'),
+			//SAR
+			array('RSI', 'SAR'),
+			array('RSI35', 'SAR'),
+			array('RSI40', 'SAR'),
+			array('FastRSI', 'SAR'),
+			array('FastRSI35', 'SAR'),
+			array('FastRSI40', 'SAR'),
+			array('SlowRSI', 'SAR'),
+			array('SlowRSI35', 'SAR'),
+			array('SlowRSI40', 'SAR'),
+			array('SignalMACD', 'SAR'),
+			array('Candle', 'SAR'),
+			//Candle
+			array('RSI', 'Candle'),
+			array('RSI35', 'Candle'),
+			array('RSI40', 'Candle'),
+			array('FastRSI', 'Candle'),
+			array('FastRSI35', 'Candle'),
+			array('FastRSI40', 'Candle'),
+			array('SlowRSI', 'Candle'),
+			array('SlowRSI35', 'Candle'),
+			array('SlowRSI40', 'Candle'),
+			array('SignalMACD', 'Candle'),
+			//SignalMACD
+			array('RSI', 'SignalMACD'),
+			array('RSI35', 'SignalMACD'),
+			array('RSI40', 'SignalMACD'),
+			array('FastRSI', 'SignalMACD'),
+			array('FastRSI35', 'SignalMACD'),
+			array('FastRSI40', 'SignalMACD'),
+			array('SlowRSI', 'SignalMACD'),
+			array('SlowRSI35', 'SignalMACD'),
+			array('SlowRSI40', 'SignalMACD'),
+			
+			//------
+			// 3 passes
+			array('RSI', 'Williams', 'Candle'), //~never popped
+			
+			array('RSI', 'Stochastic', 'VolumesOscillator'),
+			array('RSI35', 'Stochastic', 'VolumesOscillator'),
+			array('RSI40', 'Stochastic', 'VolumesOscillator'),
+			array('FastRSI', 'Stochastic', 'VolumesOscillator'),
+			array('SlowRSI', 'Stochastic', 'VolumesOscillator'),
+			array('FastRSI35', 'Stochastic', 'VolumesOscillator'),
+			array('SlowRSI35', 'Stochastic', 'VolumesOscillator'),
+			array('FastRSI40', 'Stochastic', 'VolumesOscillator'),
+			array('SlowRSI40', 'Stochastic', 'VolumesOscillator'),
+			
+			array('CCI', 'RSI', 'VolumesOscillator'),
+			array('CCI', 'RSI35', 'VolumesOscillator'),
+			array('CCI', 'RSI40', 'VolumesOscillator'),
+			array('CCI', 'FastRSI', 'VolumesOscillator'),
+			array('CCI', 'FastRSI35', 'VolumesOscillator'),
+			array('CCI', 'FastRSI40', 'VolumesOscillator'),
+			array('CCI', 'SlowRSI', 'VolumesOscillator'),
+			array('CCI', 'SlowRSI35', 'VolumesOscillator'),
+			array('CCI', 'SlowRSI40', 'VolumesOscillator'),
+			
+			array('CCI', 'RSI', 'LongVolumesOscillator'),
+			array('CCI', 'RSI35', 'LongVolumesOscillator'),
+			array('CCI', 'RSI40', 'LongVolumesOscillator'),
+			array('CCI', 'FastRSI', 'LongVolumesOscillator'),
+			array('CCI', 'FastRSI35', 'LongVolumesOscillator'),
+			array('CCI', 'FastRSI40', 'LongVolumesOscillator'),
+			array('CCI', 'SlowRSI', 'LongVolumesOscillator'),
+			array('CCI', 'SlowRSI35', 'LongVolumesOscillator'),
+			array('CCI', 'SlowRSI40', 'LongVolumesOscillator'),
+			
+			array('SignalMACD', 'CCI'),
 			array('SignalMACD', 'CCI', 'VolumesOscillator'),
-// 			array('SAR'),
+			array('SignalMACD', 'CCI', 'LongVolumesOscillator'),
+
+			array('SAR', 'RSI'),
+			array('SAR', 'FastRSI'),
+			array('SAR', 'Stochastic'),
+			array('SAR', 'LongStochastic'),
 			array('SAR', 'Williams'),
 			array('SAR', 'CCI'), // CCI&SAR && SAR&SignalMACD are comparable...
 			array('SAR', 'SignalMACD'),
 			array('SAR', 'VolumesOscillator'),
-// 			array('SAR', 'Stochastic'), // useless
+			array('SAR', 'LongVolumesOscillator'),
+			
+	//		array('SAR', 'Stochastic'), // useless
 			);
-		if(!file_exists( $file = __METHOD__ . '.csv' ))
-		{
-			$o = 'Action,';
-			foreach($indics as $litteral)
-				$o .= implode('&', $litteral).',STDV,N,';
-			file_put_contents($file, $o. 'BestIndicator,ISIN,Mnemo'."\n", FILE_APPEND);
-		}
+			*/
+// 		if(!file_exists( $file = __METHOD__ . '.csv' ))
+// 		{
+// 			$o = 'Action,';
+// 			foreach($indics as $litteral)
+// 				$o .= implode('&', $litteral).',STDV,N,';
+// 			file_put_contents($file, $o. 'BestIndicator,ISIN,Mnemo'."\n", FILE_APPEND);
+// 		}
+		
+		//Mnemo
 		$mn = strstr($action, '.', true);
 		$isin = StockInd::getInstance()->search($mn);
-		file_put_contents($file, $action.',', FILE_APPEND);
+// 		file_put_contents($file, $action.',', FILE_APPEND);
+
+		// final Data
 		$data = array();
-		foreach($indics as $funcs)
+
+// 		$tacache = array();
+		
+		// Array with Data :
+		// ID		123456789--------------------------------------------------
+		// Cours	-------------++++++++--+++++----------++++++++----------+++		Array sur Stockcache
+		// RSI		------------|----------|--------------|-----------------|--		Map franchissement
+		// Volumes	---|||||||-------|||---||||----------|||-------------|--||-		Map sur volumes
+		// Stoch	---------|---|---------|--------------|-----------------|--		map sur stoch etc...
+		// CCI		--------------|--|-----|--------------|--------------|--|--		map sur cci
+		// MACD		-----------|----|----|------|---|------------|--|----|-----		map sur signalmacd
+		$DATA = array();
+	    
+	    // Loop to populate $DATA array
+		$slicelength = 100;
+		$slice = ($days+$slicelength)*-1;
+		for($slicelength; $slicelength < $slice*-1; $slicelength++)
 		{
-			$litteralfuncs = implode('&', $funcs);
-			$data[$litteralfuncs] = array();
-			$slicelength = 100;
-			$slice = ($days+$slicelength)*-1;
-			for($slicelength; $slicelength < $slice*-1; $slicelength++)
-			{
-				$stock = new Stock($action, 'd', Stock::PROVIDER_CACHE);
-				$closes = $stock->AdjustedClose(true);
-// 				$ta = $stock->Slice($slice, $slicelength)->Analysis();
-				$stock->Slice($slice, $slicelength);
-				$tacache = array();
-				foreach($funcs as $func)
-				{
-					if(!isset($tacache[$func]))
-						$tacache[$func] = $stock->Analysis()->$func();
-					if($tacache[$func] <= 0)
-						continue 2; // Exit if not 
-				}
-				$max = 0;
-				for($thislength = 1; $thislength< ($slice*-1 - $slicelength); $thislength++)
-				{
-					$m = max(array_slice($closes, $slice + $slicelength, $thislength));
-					if($m > $max)
-						$max = $m;
-					elseif($m < $max*((100-(float)$seuil)/100))//delta 6% avant de couper court.
-					{
-						$slicelength += $thislength;
-						break 1; // break at 
-					}
-					else	continue 1;
-				}
-				$data[$litteralfuncs][] = round(100*($max - $stock->getLast()) / $stock->getLast(), 3);
-			}
-			// Averaging the data...
-			if(!empty($data[$litteralfuncs]))
-			{
-				$n = count($data[$litteralfuncs]);
-				if($n>1)
-				{
-					$mean = array_sum($data[$litteralfuncs]) / $n;
-					$carry = 0.0;
-					foreach ($data[$litteralfuncs] as $val) {
-						$d = ((double) $val) - $mean;
-						$carry += $d * $d;
-					};
-					$rstdev = ($stdev = sqrt($carry / $n)) / $mean;
-					$data[$litteralfuncs]['avg'] = $mean;
-					$data[$litteralfuncs]['stdev'] = $stdev;
-					$data[$litteralfuncs]['rstdev'] = $rstdev;
-					$data[$litteralfuncs]['numb'] = $n;
-					$data[$litteralfuncs]['power'] = round($stdev*$n/$mean, 2);
-				}
-				else
-				{
-					$data[$litteralfuncs]['avg'] = $data[$litteralfuncs][0];
-					$data[$litteralfuncs]['stdev'] = 0;
-					$data[$litteralfuncs]['rstdev'] = 0;
-					$data[$litteralfuncs]['numb'] = 1;
-					$data[$litteralfuncs]['power'] = 1;
-				}
-				file_put_contents($file, 
-					$data[$litteralfuncs]['avg'].','.
-					$data[$litteralfuncs]['stdev'].','.
-					$data[$litteralfuncs]['numb'].',',
-					FILE_APPEND);
-			}
-			else
-				file_put_contents($file, '0,0,0,', FILE_APPEND);
+			$stock = new Stock($action, 'd', Stock::PROVIDER_CACHE);
+			$stock->Slice($slice, $slicelength); //slice until today
+			
+			$DATA['COURS'][$slicelength] = $stock->getLast();
+			
+			$TA = $stock->Analysis();
+			foreach($_indics as $func)
+				$DATA[$func][$slicelength] = $TA->$func();
 		}
-		//Interpret
-		$pwr = array();
-		$std = 100.0;
-// 		$avg = array();
+		
+		//DEBUG
+// 		file_put_contents('AI.PA.csv', implode(',', $keys=array_keys($DATA))."\n");
+// 		$min = min($DATA['COURS']);
+// 		foreach($DATA['COURS'] as $i => $cours)
+// 		{
+// 			$line = '';
+// 			foreach($keys as $k)
+// 				$line .= ($DATA[$k][$i]>0 ? $cours : $min) .',';
+// 			$line .= "\n";
+// 			file_put_contents('AI.PA.csv', $line, FILE_APPEND);
+// 		}
+// 		exit();
+
+		/* 
+		 * Build Data indicators
+		 */
+		foreach($DATA['COURS'] as $slice => $cours)
+			foreach($indics as $funcs)
+			{
+				$litteralfuncs = implode('&', $funcs);
+				if(!isset($data[$litteralfuncs]))
+					$data[$litteralfuncs] = array();
+				foreach($funcs as $func)
+					if($DATA[$func][$slice] <= 0)
+						continue 2;
+				// si les deux indicateurs sont positifs,
+				// Indicator fired ! 
+				$max = $cours;
+				$seuilinf = $cours*((1-(float)$SeuilPolicy/2));  // Seuil inférieur, le cours - la volatilité historique
+				$seuilsup = $cours*((1+(float)$SeuilPolicy/2));  // Seuil supérieur
+				$sens = 0; // Sens neutre
+				$slicing = 0;
+				for($thislength = $slice; $thislength < end(array_keys($DATA['COURS'])); $thislength++)
+				{
+					$m = $DATA['COURS'][$thislength];
+					if($m > $seuilsup && $sens !== -1)
+					// le cours dépasse le seuil de volatilité à la hausse, dans un environnement neutre ou gagnant,
+					{
+// 						print $m.' ';
+						if($m > $max)
+							$max = $m; // on cherche le maximum
+// 						if($m < $max*(1-$SeuilPolicy/2)) // Si le cours refranchit à la baisse la volatilité, 
+// 							break;
+						$sens = 1; // on met le sens gagnant;
+					}
+					elseif($m < $seuilinf && $sens !== 1)// dépasse le seuil de volatilité à la baisse, perdant.
+					{
+// 						print 'FAIL';
+						if($m < $max)
+							$max = $m;
+// 						if($m > $max*(1+$SeuilPolicy/2))
+// 							break;
+						$sens = -1;
+					}
+					elseif($m > $seuilinf && $m < $seuilsup && $sens == 0) // le cours oscille entre les deux bornes sup et inf
+						continue 1;
+					else // le cours avait dépassé le seuil haut dans un environnement gagnant et l'a repassé à la baisse, ou inversement pour le coup perdant. On coupe la mesure.
+					{
+						$slicing = $thislength;
+						break;
+					}
+				}
+				if($max != $cours) // si le cours est resté entre les deux bornes, cela signifie qu'il n'y a pas assez de données pour décider (derniers cours en cache...)
+				// Auquel cas on n'enregistrerait pas le résultat.
+				{
+					print ($max > $cours ? 'Hausse' : 'Baisse'). ' de '.$data[$litteralfuncs][] = round(100*($max - $cours) / $cours, 3).'% en '.$slicing.' jours.'."\n";
+				}
+				// On enregistre les performances maximales par rapport au cours de triggering
+			}
+
+
+		/*
+		 *
+		 * Moyennes, Ecart type sur les résultats.
+		 *
+		 */
+		array_walk($data, function(&$d) {
+			$n = count($d);
+// 			if($n == 0)
+// 				$d = array('avg' => 0, 'stdev' => 0, 'numb' => 0);
+			if($n>1)
+			{
+				$winloose = 0;
+				$mean = array_sum($d) / $n;
+				$carry = 0.0;
+				foreach ($d as $val) {
+					$a = ((double) $val) - $mean;
+					$carry += $a * $a;
+					$winloose += $val > 0 ? 1 : 0; // L'opération était-elle gagnante ou perdante ?
+				};
+				$stdev = sqrt($carry / $n);
+// 				$rstdev = ($stdev) / $mean;
+				$d['avg'] = $mean;
+				$d['stdev'] = $stdev;
+// 				$d['rstdev'] = $rstdev;
+				$d['tstdev'] = $stdev / sqrt($n);
+				$d['numb'] = $n;
+				$d['winloose'] = $winloose*100/$n.'%'; // pourcentage de trades gagnants
+// 				$d['power'] = round($stdev*$n/$mean, 2);
+			}
+			elseif($n==1)
+			{
+				$d['avg'] = $d[0];
+				$d['stdev'] = 0;
+// 				$d['rstdev'] = 0;
+				$d['tstdev'] = 0;
+				$d['numb'] = 1;
+				$d['winloose'] = '50%'; // par convention, lorsqu'on a qu'une seule valeur sporadique, on considère un ratio de gain 50/50, pile ou face.
+// 				$d['power'] = 1;
+			}
+			return ;
+		});
+		
+// 		print_r($data);
+		
+// 		foreach($indics as $funcs)
+// 		{
+// 			$litteralfuncs = implode('&', $funcs);
+// 			$data[$litteralfuncs] = array();
+// 			$slicelength = 100;
+// 			$slice = ($days+$slicelength)*-1;
+// 			for($slicelength; $slicelength < $slice*-1; $slicelength++)
+// 			{
+// 				$stock = new Stock($action, 'd', Stock::PROVIDER_CACHE);
+// 				$closes = $stock->AdjustedClose(true);
+// // 				$ta = $stock->Slice($slice, $slicelength)->Analysis();
+// 				$stock->Slice($slice, $slicelength);
+// 				foreach($funcs as $func)
+// 				{
+// 					if(!isset($tacache[$func][$slicelength]))
+// 						$tacache[$func][$slicelength] = $stock->Analysis()->$func();
+// 					if($tacache[$func][$slicelength] <= 0)
+// 						continue 2; // Exit if not 
+// 				}
+// 				$max = 0;
+// 				for($thislength = 1; $thislength< ($slice*-1 - $slicelength); $thislength++)
+// 				{
+// 					$m = max(array_slice($closes, $slice + $slicelength, $thislength));
+// 					if($m > $max)
+// 						$max = $m;
+// 					elseif($m < $max*((100-(float)$seuil)/100))//delta 6% avant de couper court.
+// 					{
+// 						$slicelength += $thislength;
+// 						break 1; // break at 
+// 					}
+// 					else	continue 1;
+// 				}
+// 				$data[$litteralfuncs][] = round(100*($max - $stock->getLast()) / $stock->getLast(), 3);
+// 			}
+// 			// Averaging the data...
+// 			if(!empty($data[$litteralfuncs]))
+// 			{
+// 				$n = count($data[$litteralfuncs]);
+// 				if($n>1)
+// 				{
+// 					$mean = array_sum($data[$litteralfuncs]) / $n;
+// 					$carry = 0.0;
+// 					foreach ($data[$litteralfuncs] as $val) {
+// 						$d = ((double) $val) - $mean;
+// 						$carry += $d * $d;
+// 					};
+// 					$rstdev = ($stdev = sqrt($carry / $n)) / $mean;
+// 					$data[$litteralfuncs]['avg'] = $mean;
+// 					$data[$litteralfuncs]['stdev'] = $stdev;
+// 					$data[$litteralfuncs]['rstdev'] = $rstdev;
+// 					$data[$litteralfuncs]['numb'] = $n;
+// 					$data[$litteralfuncs]['power'] = round($stdev*$n/$mean, 2);
+// 				}
+// 				else
+// 				{
+// 					$data[$litteralfuncs]['avg'] = $data[$litteralfuncs][0];
+// 					$data[$litteralfuncs]['stdev'] = 0;
+// 					$data[$litteralfuncs]['rstdev'] = 0;
+// 					$data[$litteralfuncs]['numb'] = 1;
+// 					$data[$litteralfuncs]['power'] = 1;
+// 				}
+// 				file_put_contents($file, 
+// 					$data[$litteralfuncs]['avg'].','.
+// 					$data[$litteralfuncs]['stdev'].','.
+// 					$data[$litteralfuncs]['numb'].',',
+// 					FILE_APPEND);
+// 			}
+// 			else
+// 				file_put_contents($file, '0,0,0,', FILE_APPEND);
+// 		}
+
+		/*
+		 *
+		 * Faire le tri entre les indicateurs
+		 *
+		 */
+		$pwr = $pwri = array();
+// 		$std = 100.0;
+		$avg = array();
+// 		foreach($data as $func => $p)
+// 		{
+// // 			print 'Intervalle de Confiance 95 pour '.$func.' : '.($p['avg']-2*$p['stdev'])."\n";
+// 			$seuil = $SeuilPolicy*100;
+// 			if(!isset($p['avg']))
+// 				continue;
+// 			if($p['avg'] < (float)$seuil) // Si la moyenne n'outrepasse pas le seuil de détection...
+// 				continue;
+// 			if($p['avg']-2*$p['stdev'] < (float)$seuil) // non significatif, contient 0.
+// 				continue;
+// 			//Puissance insuffisante => On quitte
+// 			if($p['numb'] < 2 
+// // 				&& $p['avg'] < 2.5*(float)$seuil
+// 				) // Si la puissance est insuffisante, au moins on élimine si la moyenne est inférieure à 2x le seuil afin d'approximer un IC95
+// 				continue;
+// 			$tests = explode('&', $func);
+// 			if(!empty(array_intersect($tests, $pwr))) // Si une focntion composant l'indicateur existe déja seul parmi les indicateurs, c'est un indicateur redondant inutile qu'on annule.
+// 				continue;
+// 			$pwr[] = $func;
+// // 			if($p['stdev'] < $std)
+// // 				$std = $p['stdev'];
+// 			$avg[$func] = $p['avg'];
+// 			continue;
+// 		}
 		foreach($data as $func => $p)
 		{
-// 			print 'Intervalle de Confiance 95 pour '.$func.' : '.($p['avg']-2*$p['stdev'])."\n";
-			if(!isset($p['avg']))
+			// 0. Skip empty, not fired indicators
+			if(empty($p))
 				continue;
-			if($p['avg'] < (float)$seuil) // Si la moyenne n'outrepasse pas le seuil de détection...
+			
+			// 1. Skip anti-winning signals, loose>win or average gains negatives.
+			if((int)$p['winloose'] < 50)	continue; 
+			if((int)$p['avg'] < 0)			continue;
+			
+			// 2. Skip not powerful enough data
+			if((int)$p['numb'] < 2)			continue;
+				
+			// 3 Skip when average perf is lower than historical volatility
+// 			if($p['avg'] < $SeuilPolicy*100)	continue; // OBSOLETE, déjà déterminé précédemment.
+			
+			// 4. Select only IC95 good values with TrueSTDEV, assuming means are normally distributed
+			$IC95low = $p['avg'] - 1.96*$p['stdev'];
+// 			$IC95up = $p['avg'] + 1.96*$p['tstdev'];
+			if($IC95low < $SeuilPolicy*50) // Si l'intervalle comprend 0, exit, on est dedans.
 				continue;
-			if($p['avg']-2*$p['stdev'] < (float)$seuil) // non significatif, contient 0.
-				continue;
-			//Puissance insuffisante => On quitte
-			if($p['numb'] < 2 
-// 				&& $p['avg'] < 2.5*(float)$seuil
-				) // Si la puissance est insuffisante, au moins on élimine si la moyenne est inférieure à 2x le seuil afin d'approximer un IC95
-				continue;
-			$tests = explode('&', $func);
-			if(!empty(array_intersect($tests, $pwr))) // Si une focntion composant l'indicateur existe déja seul parmi les indicateurs, c'est un indicateur redondant inutile qu'on annule.
-				continue;
+			
+			// 5. Si une focntion composant l'indicateur existe déja seule parmi les indicateurs, c'est un indicateur redondant qu'on annule.
+			$exploded = explode('&', $func);
+			foreach($pwri as $pw)
+				if(empty(array_diff($pw, $exploded)))
+					continue 2;
+
+			// On ajoute la fonction aux indicateurs pertinents
 			$pwr[] = $func;
-			if($p['stdev'] < $std)
-				$std = $p['stdev'];
-// 			$avg[$func] = $p['avg'];
+			$pwri[] = $exploded;
+			$avg[$func] = $p['avg'];
+			//DEBUG
+			print $func;
+			print_r($p);
 			continue;
 		}
-		file_put_contents($file, implode('|', $pwr).','.$isin.','.$mn."\n", FILE_APPEND);
+		//DEBUG
+// 		print_r( $avg );
+// 		file_put_contents($file, implode('|', $pwr).','.$isin.','.$mn."\n", FILE_APPEND);
 		return array(
 			'IndicateurAchat' => implode('|', $pwr),
-// 			'SeuilPolicy' => $TrueVol.'%',
-			'SeuilPolicy' => round($Volatility/2, 2).'%',
+// 			'SeuilDeDetection' => $SeuilPolicy*100 .'%',
+			'SeuilPolicy' => round($SeuilPolicy*50, 2) .'%', /*round($Volatility/2, 2)*/ 
 // 			'SeuilPolicy2' => $std,
+			'ObjectifMoyen' => $objMoy = round(array_sum(array_unique($avg))/count(array_unique($avg)), 2).'%',
+			'BeneficeMinimal' => round($objMoy/4, 2).'%',
 		);
 // 			if($p['rstdev'] > .3) //30% de divergences à la moyenne
 // 				continue;
@@ -685,15 +1092,15 @@ class TradingBot
 		
 // 		return $data;
 	}
-	public static function BuildIndicators($days = 500, $seuil = '6%')
+	public static function BuildIndicators($days = 500)
 	{
 // 		$list = StockInd::getInstance()->Lib;
 		$Indicators = array();
 		$i = 0;
-		foreach(Stock::$YahooSBF120 as $ya)
+		foreach(Stock::$YahooCAC40 as $ya)
 		{
-			print ++$i.'/'.count(Stock::$YahooSBF120).'...'."\n"; 
 			$mn = strstr($ya, '.', true);
+			print ++$i.'/'.count(Stock::$YahooCAC40).'... '."$mn\n"; 
 			$isin = StockInd::getInstance()->search($mn);
 			if($isin == false)
 			{
@@ -704,7 +1111,8 @@ class TradingBot
 			$Indicators[$isin] = self::BestIndicator($ya);
 			$Indicators[$isin]['_AutoLabel'] = ucwords($label);
 			$Indicators[$isin]['_AutoMnemo'] = $mn;
-// 			print_r($Indicators);
+			print_r($Indicators);
+			print "\n";
 		}
 		file_put_contents(self::EXTERNAL_INDICATORS, '<?php'."\n".'// Généré le '.date('d/m/Y à H:i:s')."\n".'$Indicators = '.var_export($Indicators, true).';'."\n".'?>');
 		
