@@ -1,7 +1,4 @@
 <?php 
-require(dirname(__FILE__).'/../class.CM.php');
-require('../class.ABCBourse.php');
-
 
 class ABCBourseBroker extends ABCBourse implements Broker
 {
@@ -9,26 +6,22 @@ class ABCBourseBroker extends ABCBourse implements Broker
 
 	public function __construct($portifID = self::PORTIF)
 	{
-// 		parent::__construct();
-
-// 		$this->_modeJSON(true);
-
 		return $this;
 	}
 	
-	public function isISIN(&$i)
-	{
-		if(!class_exists('StockInd'))
-			if(is_readable('class.StockInd.php'))
-				require_once('class.StockInd.php');
-			else
-				return false; // couldn't search for indice in DB
-		return StockInd::isISIN($i);
-	}
+// 	public function isISIN(&$i)
+// 	{
+// 		if(!class_exists('StockInd'))
+// 			if(is_readable('class.StockInd.php'))
+// 				require_once('class.StockInd.php');
+// 			else
+// 				return false; // couldn't search for indice in DB
+// 		return StockInd::isISIN($i);
+// 	}
 	
-	public function Ordre($isin = null)
+	public function Ordre(Stock $stock)
 	{
-		return new OrdreABCBourse(/*$this,*/ $isin);
+		return new OrdreABCBourse($stock);
 	}
 	
 	public function Valorisation($getraw = false)
@@ -79,7 +72,7 @@ class ABCBourseBroker extends ABCBourse implements Broker
 
 }
 
-class OrdreABCBourse extends ABCBourseBroker /*implements Ordre*/
+class OrdreABCBourse extends ABCBourseBroker implements Ordre
 {
 	const SEND_ORDER = "https://www.abcbourse.com/game/tab_market.aspx/sendOrder";
 	protected $remoteURL = self::SEND_ORDER;
@@ -91,15 +84,24 @@ class OrdreABCBourse extends ABCBourseBroker /*implements Ordre*/
 		'limitQuote' => '',
 		'expiration' => '');
 	
-	public function __construct($isin, $position = false)
+	public function __construct(Stock $stock)
 	{
-		if($position)
-			$this->idLign = $isin;
-		else
-			$this->tickerID = $isin;
+		$isin = $stock->ISIN();
+		$this->tickerID = $isin;
 		$this->isin = $isin;
-		$this->expiration = date('d/m/Y', strtotime('last Friday of +3 weeks'));
+		$this->dftexp();
 	}
+	protected function dftexp()
+	{
+		$this->expiration = date('d/m/Y', strtotime('3 weeks Friday'));
+		return $this;
+	}
+	protected function idLign($idlign)
+	{
+		$this->idLigh = $idlign;
+		return $this;
+	}
+	
 	public function __get($n)
 	{
 		return $this->data[$n];
@@ -161,16 +163,12 @@ class OrdreABCBourse extends ABCBourseBroker /*implements Ordre*/
 		return new ABCBoursePendingOrder();
 // 		return $this;
 	}
-	public function Expiration($exp)
+	public function Expire($exp)
 	{
 		$this->expiration = is_int($exp) ? date('d/m/Y', $exp) : $exp;
 		return $this;
 	}
-// 	public function Delete()
-// 	{
-// 		SimulatorAccount::getInstance()->removeOrder($this->ref);
-// 		return $this;
-// 	}
+
 	public function __destruct()
 	{
 		unset($this->data);
@@ -178,15 +176,15 @@ class OrdreABCBourse extends ABCBourseBroker /*implements Ordre*/
 	
 }
 
-class PositionABCBourse extends OrdreABCBourse /*implements Position */
+class PositionABCBourse extends OrdreABCBourse implements Position 
 {
-// 	use PositionScheme;
+	use PositionScheme;
 	
 	private $idLign = -1;
 	private $posQty = 0;
 	public function __construct($idLign, $qte)
 	{
-		parent::__construct($idLign, true);
+		$this->dftexp()->idLign($idLign);
 		$this->remoteURL = "https://www.abcbourse.com/game/displayp.aspx/sendOrder";
 		$this->idLign = (int) $idLign;
 		$this->posQty = (int) $qte;
@@ -205,7 +203,7 @@ class PositionABCBourse extends OrdreABCBourse /*implements Position */
 	
 }
 
-class ABCBoursePendingOrder /*implements PendingOrder*/
+class ABCBoursePendingOrder implements PendingOrder
 {
 	public function Delete()
 	{
@@ -213,10 +211,5 @@ class ABCBoursePendingOrder /*implements PendingOrder*/
 	}
 }
 
-$ABC = new ABCBourseBroker();
-var_dump($ABC->Ordre("FI0009000681")->Achat(10)->AuMarche()->Exec());
-$a = $ABC->Valorisation();
-foreach($a as $v)
-	$v->AuMarche()->Exec();
 
 ?>

@@ -4,9 +4,9 @@
 
 interface Broker
 {
-	public function isISIN(&$i);
-	public function Valorisation($getraw = false) : Position;
-	public function Ordre($isin = null) : Ordre;
+// 	public function isISIN(&$i);
+	public function Valorisation() /*: Generator*/;
+	public function Ordre(Stock $stock) /*: Ordre*/;
 }
 
 interface Position extends Ordre
@@ -17,7 +17,8 @@ interface Position extends Ordre
 // 	public function Capital(); // must return capital
 // 	public function PrixRevient(); // must return le prix de revient de la position
 	public function get($key); // return one of the features of the position scheme
-	protected function set($key, $val); // useful function
+//	REQUIRED METhoD :
+// 	protected function set($key, $val); // useful function
 	public function Qte($qte = 0); // set the quantity of stocks for the order
 }
 trait PositionScheme
@@ -32,6 +33,8 @@ trait PositionScheme
 		'GAINPCT' => 0.0,
 		'CAPITAL'=> 0.0,
 		'SRD' => false,
+		'TRADINGPLACE' => "024",
+		
 	);
 	
 	public function get($key)
@@ -40,10 +43,13 @@ trait PositionScheme
 		return $this->Features[$key];
 	}
 	
-	protected function set($key, $val)
+	public function set($key, $val)
 	{
 		if(isset($this->Features[$key]))
-			$this->Features[$key] = settype($val, gettype($this->Features[$key]));
+		{
+			settype($val, gettype($this->Features[$key]));
+			$this->Features[$key] = $val;
+		}
 		else
 			throw new Exception('Unknown key setting ['.$key.'] with val '.$val);
 		return $this;
@@ -65,17 +71,17 @@ interface Ordre
 	public function ACoursLimite($lim);
 	public function AuMarche();
 	public function Expire($date);
-	public function Exec() : PendingOrder;
+	public function Exec() /*: PendingOrder*/;
 }
 
 interface PendingOrder
 {
 	public function Delete();
 }
-
+/*
 interface Action
 {
 	public function ISIn();
-}
+}*/
 
 ?>
