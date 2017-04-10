@@ -1,5 +1,6 @@
 <?php
 
+
 abstract class ABCBourse
 {
 	CONST ABCUSER_COOKIE = "ABCUser=73D8658BBF3166B610537BD10F93956F9251561EF949B989895FE1C9BCC601A8BD30E129E27AB6A84C3E9EB550799B1FE917449813B258D88B49CDD32EBEF2A028FD4876A0DFFD29A510FE757F6B2F2A5A01960F903C23645D74C3F179573199E7D26713B9BBE0B0072AD296BDAAB40809C7BEB47F2997C9B32AA0E7;";
@@ -32,9 +33,7 @@ abstract class ABCBourse
 		list($head, $body) = explode("\r\n\r\n", curl_exec($ch));
 		if(preg_match("/content-encoding: ?(gzip)|(deflate)/si", $head))
 			$body = gzdecode($body);
-// 		print $re;
-// 		print_r($re);
-// 		print_r(json_decode($re[1]));
+// 		print $body;
 		return json_decode($body);
 // 		return $this;
 	}
