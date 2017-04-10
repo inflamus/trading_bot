@@ -1,5 +1,6 @@
 <?php
 
+define('DIRNAME', dirname(__FILE__));
 /*
  Usage : StockInd::getInstance()->search('Air Liquide');
  
@@ -38,13 +39,25 @@ class Stock implements iStock
 	{
 		return $this->Mnemo;
 	}
+	
+	public function Yahoo()
+	{
+		$places = array(
+			'FR' => '.PA',
+			'BE' => '.BR',
+			'NL' => '.AS',
+			'GB' => '',
+			
+		);
+		return $this->Mnemo. $places[substr($this->ISIN, 0, 2)];
+	}
 }
 
 class StockInd
 {
-// 	use UniqueInstance;  //trait for unique instance of a class
+	use UniqueInstance;  //trait for unique instance of a class
 
-	const STOCKS_FILE = 'EUROLIST.ind'; /* Thanks to ABC Bourse.com */
+	const STOCKS_FILE = DIRNAME.'/EUROLIST.ind'; /* Thanks to ABC Bourse.com */
 	const UNIFORM_REGEX = '/[^a-z0-9]/';
 	const UPDATE_INTERVAL = 3600*24*7; // every weeks
 	public $Lib = array(), $Mnem = array();
@@ -70,9 +83,9 @@ class StockInd
 	public function search($s)
 	{
 		if(($re = array_search($this->uniform($s), $this->Lib))!== false)
-			return $re;
+			return strtoupper($re);
 		if(($re = array_search(strtoupper($s), $this->Mnem)) !== false)
-			return $re;
+			return strtoupper($re);
 		return false;
 	}
 	
@@ -86,19 +99,7 @@ class StockInd
 		return $this->Lib[$isin];
 	}
 	
-	public static function registerInstance($instance)
-	{
-		return $GLOBALS[__CLASS__ . 'INSTANCE'] = $instance;
-	}
-	public static function getInstance()
-	{
-		if(isset($GLOBALS[__CLASS__ . 'INSTANCE']))
-			return $GLOBALS[__CLASS__ . 'INSTANCE'];
-		else 
-			return self::registerInstance(new self());
-	}
-	
-		//from https://github.com/pear/Validate_Finance/tree/master/Validate/Finance/ISIN.php
+	//from https://github.com/pear/Validate_Finance/tree/master/Validate/Finance/ISIN.php
 	public static function ISIN($isin)
     {
         // Formal check.
