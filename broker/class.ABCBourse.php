@@ -56,7 +56,7 @@ class ABCBourseBroker extends ABCBourse implements Broker
 		
 		foreach($matches[1] as $k => $idLign)
 		{
-			$Pos = new PositionABCBourse($idLign, $matches[5][$k]);
+			$Pos = new PositionABCBourse($idLign, $matches[3][$k], $matches[5][$k]);
 			$Pos->set('QTY', $matches[5][$k])
 				->set('SENS', $matches[4][$k]=='vendre' ? 1 : 0)
 				->set('PRIXREVIENT', $matches[6][$k])
@@ -70,6 +70,43 @@ class ABCBourseBroker extends ABCBourse implements Broker
 
 	}
 
+	public function PendingOrders()
+	{
+		preg_match_all('/'.
+				'<tr class="alct">.+'. 
+				'<td>.+'.
+					'<span class="ac1_3">(A|V)<\/span>.+'. //1 = vendre / racheter
+				'<\/td>.+'.
+				'.+'.
+				'<td class="allf"><b><a href="display\.aspx\?s=([A-Z0-9]{12})[a-z]+">.+<\/a><\/b><\/td>.+'. //2 = ISIN
+				'<td>([0-9]+)<\/td>.+'. //3 quantite
+				'<td data-sort-value="[0-9]+" class="mobno">(.+)<\/td>.+'. //4 date expire
+				'<td>(Limité|Stop) : ([0-9,]+) €<\/td>.+'. //5 Cours limité
+				'.+'. 
+				'<\/tr>'.
+				'/siU', 
+		file_get_contents(self::PEND_URL, null,
+			stream_context_create(
+				array(
+					'http' => array(
+						'method' => 'GET', 
+						'header' => 'Cookie: '.self::ABCUSER_COOKIE.';'."\n".
+									'Referer: https://www.abcbourse.com/game/displayp.aspx'."\n"
+									
+						)
+					)
+			)
+		), $matches);
+		
+		foreach($matches[1] as $k => $idLign)
+		{
+			$Pos = new ABCBoursePendingOrder($matches[2][$k]);
+			$Pos->set('QTY', $matches[3][$k])
+				->set('SENS', $matches[1][$k]=='A' ? 1 : 0);
+				//TODO : add isin, others params
+			yield $Pos;
+		}
+	}
 }
 
 class OrdreABCBourse extends ABCBourseBroker implements Ordre
@@ -160,7 +197,7 @@ class OrdreABCBourse extends ABCBourseBroker implements Ordre
 		$re = $this->post($this->remoteURL, $this->data);
 			if(!isset($re->d) || $re->d->Code != "2")
 				throw new Exception($re->d->Message . ' from this order : '.print_r($this->data, true));
-		return new ABCBoursePendingOrder();
+		return new ABCBoursePendingOrder($this->isin);
 // 		return $this;
 	}
 	public function Expire($exp)
@@ -182,12 +219,13 @@ class PositionABCBourse extends OrdreABCBourse implements Position
 	
 	private $idLign = -1;
 	private $posQty = 0;
-	public function __construct($idLign, $qte)
+	public function __construct($idLign, $mnemo, $qte)
 	{
 		$this->dftexp()->idLign($idLign);
 		$this->remoteURL = "https://www.abcbourse.com/game/displayp.aspx/sendOrder";
 		$this->idLign = (int) $idLign;
 		$this->posQty = (int) $qte;
+		$this->Stock = new Stock($mnemo);
 		$this->Qte();
 		
 		return $this;
@@ -201,10 +239,22 @@ class PositionABCBourse extends OrdreABCBourse implements Position
 		return $this;
 	}
 	
+	public function __toString()
+	{
+		return $this->Stock->Label;
+	}
+	
 }
 
 class ABCBoursePendingOrder implements PendingOrder
 {
+	use PendingOrderScheme;
+	
+	public function __construct($isin)
+	{
+		$this->Stock = new Stock($isin);
+	}
+	
 	public function Delete()
 	{
 		return true;

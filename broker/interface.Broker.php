@@ -5,8 +5,9 @@
 interface Broker
 {
 // 	public function isISIN(&$i);
-	public function Valorisation() /*: Generator*/;
+	public function Valorisation() /*: Generator..Position*/;
 	public function Ordre(Stock $stock) /*: Ordre*/;
+	public function PendingOrders() /*:Generator..PendingOrder*/;
 }
 
 interface Position extends Ordre
@@ -18,11 +19,14 @@ interface Position extends Ordre
 // 	public function PrixRevient(); // must return le prix de revient de la position
 	public function get($key); // return one of the features of the position scheme
 //	REQUIRED METhoD :
-// 	protected function set($key, $val); // useful function
+	public function set($key, $val); // useful function
 	public function Qte($qte = 0); // set the quantity of stocks for the order
+	public function __toString(); // must return the label of the stock
 }
 trait PositionScheme
 {
+	use _UsableScheme;
+	
 	private $Features = array(
 		'SENS' => -1, // 1 => achat, 0 => vendre
 		'QTY' => 0,
@@ -34,8 +38,14 @@ trait PositionScheme
 		'CAPITAL'=> 0.0,
 		'SRD' => false,
 		'TRADINGPLACE' => "024",
-		
+		'DEVISE' => "EUR",
+		'OPCVM' => false,
 	);
+}
+
+trait _UsableScheme
+{	
+	public $Stock = null; // Contains the Stock Object of the position
 	
 	public function get($key)
 	{
@@ -76,12 +86,18 @@ interface Ordre
 
 interface PendingOrder
 {
-	public function Delete();
+	public function Delete() /*: boolean*/;
+	public function get($key);
+	public function set($key, $val);
 }
-/*
-interface Action
+trait PendingOrderScheme
 {
-	public function ISIn();
-}*/
-
+	use _UsableScheme;
+	
+	private $Features = array(
+		'SENS' => -1,
+		'QTY' => 0,
+		'REF' => "string",	
+	);
+}
 ?>

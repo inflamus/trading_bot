@@ -199,6 +199,19 @@ class SimulatorAccount
 		}
 	}
 	
+	public function PendingOrders()
+	{
+		foreach($this->ordres as $ref=>$o)
+		{
+			$pend = new PendingOrderSimulator($ref);
+			$pend->set('SENS', $o['sens']) 
+				->set('QTY', $o['qte'])
+				->set('REF', $ref);
+			$pend->Stock = new Stock($o['isin']);
+			yield $pend;
+		}
+	}
+	
 	public function Withdraw($cash)
 	{
 		$this->cash -= (int)$cash;
@@ -262,6 +275,10 @@ class Simulator implements Broker
 	public function Ordre(Stock $sto)
 	{
 		return new OrdreSimulator($sto);
+	}
+	public function PendingOrders()
+	{
+		return $this->s->PendingOrders();
 	}
 }
 
@@ -346,12 +363,13 @@ class PositionSimulator extends OrdreSimulator implements Position
 {
 	use PositionScheme;
 	
-	private $isin, $maxqte;
+	private /*$isin,*/ $maxqte;
 	public function __construct($isin, $qte)
 	{
-		$this->isin = $isin;
+// 		$this->isin = $isin;
 		$this->maxqte = (int)$qte;
 		$this->Qte();
+		$this->Stock = new Stock($isin);
 		return $this;
 	}
 	
@@ -363,14 +381,22 @@ class PositionSimulator extends OrdreSimulator implements Position
 		return $this;
 	}
 	
+	public function __toString()
+	{
+		return $this->Stock->Label;
+	}
+	
 }
 
 class PendingOrderSimulator implements PendingOrder
 {
+	use PendingOrderScheme;
+
 	private $ref;
 	public function __construct($ref)
 	{
 		$this->ref = $ref;
+		$this->set('REF', $ref);
 	}
 	
 	public function Delete()
