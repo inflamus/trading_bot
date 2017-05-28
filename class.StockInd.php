@@ -7,6 +7,7 @@ define('DIRNAME', dirname(__FILE__));
  or new Stock('Air Liquide');
 		-> ISIN(); // return ISIN
 		-> Mnemo(); // return Mnemo
+		-> Label; // return Label
 */
 
 interface iStock
@@ -42,14 +43,25 @@ class Stock implements iStock
 	
 	public function Yahoo()
 	{
-		$places = array(
-			'FR' => '.PA',
-			'BE' => '.BR',
-			'NL' => '.AS',
-			'GB' => '',
-			
-		);
-		return $this->Mnemo. $places[substr($this->ISIN, 0, 2)];
+// 		$places = array(
+// 			'FR' => '.PA',
+// 			'BE' => '.BR',
+// 			'NL' => '.AS',
+// 			'GB' => '',
+// 			
+// 		);
+// 		return $this->Mnemo. $places[substr($this->ISIN, 0, 2)];
+		switch($this->Mnemo)
+		{
+			case 'SOLB':
+				return 'SOLB.BR'; break;
+			case 'UL':
+				return 'UL.AS'; break;
+			case 'APAM':
+				return 'APAM.AS'; break;
+			default:
+				return $this->Mnemo .'.PA';
+		}		
 	}
 }
 

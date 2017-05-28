@@ -230,9 +230,4 @@ class ABCBourseStock extends ABCBourse implements StockProvider
 // 	public function To($year, $month=1, $day = 1); //Idem
 	
 }
-
-//TEST
-// $ABC = new ABCBourseStock(new Stock("SAnofi"));
-// count(iterator_to_array($ABC->Period(-5)->getData()));
-
 ?>

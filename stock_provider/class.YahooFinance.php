@@ -2,22 +2,26 @@
 
 class YahooStock implements StockProvider
 {
-	const STOCKFEED = 'http://real-chart.finance.yahoo.com/table.csv';
+	const STOCKFEED = 'https://query1.finance.yahoo.com/v7/finance/download/';
 	const CAC40 = '^FCHI';
+	const COOKIE = "B=d1vq4ppbh4gfq&b=3&s=g7";
 	
+	private $s = "";
 	private $params = array(
-		's' => '',
-		'g' => 'd', // journalier
-// 		'b' => date('j', strtotime('-5 years')), //debut jour
-// 		'a' => date('m', strtotime('-5 years'))-1, //debut mois -1
-// 		'c' => date('Y')-5, // debut annee
-//		'e' => 15, // fin jour
-//		'd' => '00', // fin mois -1
-//		'f' => 2016, // fin annee 
+		'period1' => 0,
+		'period2' => 0,
+		'interval' => '1d', //1mo, 1wk
+		'events' => 'history',
+		'crumb' => '3V80Kj7qyxp',
 		);
+	private $context = null;
+	private $h = null;
 	public function __construct(Stock $stock)
 	{
-		$this->params['s'] = $stock->Yahoo();
+		$this->params['period1'] = strtotime("-1 year");
+		$this->params['period2'] = strtotime("today 00:00");
+		$this->s = $stock->Yahoo();
+		$this->_create_context();
 		return $this;
 	}
 
@@ -43,29 +47,29 @@ class YahooStock implements StockProvider
 		}
 	}
 	
-	public function Period($p = 'd')
+	public function Period($p = '1d')
 	{
-		$this->params['g'] = $p;
+		$this->params['interval'] = $p;
 		return $this;
 	}
 	
 	public function Daily()
 	{
-		$this->Period('d');
+		$this->Period('1d');
 		$this->Length('5 years');
 		return $this;
 	}
 	
 	public function Weekly()
 	{
-		$this->Period('w');
+		$this->Period('1wk');
 		$this->Length('10 years');
 		return $this;
 	}
 	
 	public function Monthly()
 	{
-		$this->Period('m');
+		$this->Period('1mo');
 		$this->Length('20 years');
 		return $this;
 	}
@@ -75,7 +79,7 @@ class YahooStock implements StockProvider
 		return false;
 	}
 	
-	public function To($y, $m=1, $e=1)
+	private function _MkTime($y,$m,$d,$param)
 	{
 		if(is_string($y))
 			$y = explode('-', $y);
@@ -85,54 +89,47 @@ class YahooStock implements StockProvider
 			$m = $y[1];
 			$y = $y[0];
 		}
-		$this->params('e', $e);
-		$this->params('d', $m);
-		$this->params('f', $y);
+		$this->params[$param] = mktime(0, 0, 0, $m, $d, $y);
+		return $this;
+	}
+	
+	public function To($y, $m=1, $d=1)
+	{
+		$this->_MkTime($y, $m, $d, 'period2');
 		return $this;
 	}
 	
 	public function From($y,$m=1,$d=1)
 	{
-		if(is_string($y))
-			$y = explode('-', $y);
-		if(is_array($y))
-		{
-			$d = $y[2];
-			$m = $y[1];
-			$y = $y[0];
-		}
-
-		$this->setStartYear($y)
-			->setStartMonth($m)
-			->setStartDay($d);
+		$this->_MkTime($y, $m, $d, 'period1');
 		return $this;
 	}
 	
 	public function Length($l)
 	{
-		$this->From(date('Y-m-d', strtotime('today -'.$l)));
-		$this->To(date('Y-m-d'));
+		$this->params['period1'] = strtotime('today -'.$l);
+		$this->params['period2'] = strtotime('today 00:00');
 		return $this;
 	}
 	
-	public function setStartYear($y)
-	{
-		$this->params('c',(int)$y);
-		return $this;
-	}
-	
-	public function setStartMonth($m=1)
-	{
-		$this->params('a', str_pad($m-1, 2, '0', STR_PAD_LEFT));
-		return $this;
-	}
-	
-	public function setStartDay($d=1)
-	{
-		$this->params('b',(int)$d);
-		return $this;
-	}
-	
+// 	public function setStartYear($y)
+// 	{
+// 		$this->params('c',(int)$y);
+// 		return $this;
+// 	}
+// 	
+// 	public function setStartMonth($m=1)
+// 	{
+// 		$this->params('a', str_pad($m-1, 2, '0', STR_PAD_LEFT));
+// 		return $this;
+// 	}
+// 	
+// 	public function setStartDay($d=1)
+// 	{
+// 		$this->params('b',(int)$d);
+// 		return $this;
+// 	}
+// 	
 	private function params($k, $v)
 	{
 		$this->params[$k] = $v;
@@ -141,22 +138,21 @@ class YahooStock implements StockProvider
 	
 	private function CSVToArray()
 	{
-// 		$arr = array();
-		$file = file($this->getURL());
-		for($i=count($file)-1; $i>0; $i--)
+		if($this->_fopen_handle())
 		{
-			$a = explode(',', $file[$i]);
-			yield $a[0] => 
-			/*$arr[$a['0']] =*/ array(
-				(float)$a[1], // Open
-				(float)$a[2], // High
-				(float)$a[3], //Low
-				(float)$a[4], //Close
-				(int)$a[5],   //Volume
-				(float)$a[6]  //Adj Close
-				);
+			while(($a = fgetcsv($this->h, 128, ",")) !== false)
+			{
+				if($a[0] == "Date") continue;
+				yield $a[0] => array(
+					(float)$a[1], // Open
+					(float)$a[2], // High
+					(float)$a[3], //Low
+					(float)$a[4], //Close
+					(int)$a[6],   //Volume
+					(float)$a[5]  //Adj Close
+					);
+			}
 		}
-// 		return $arr;
 	}
 	
 	public function getData()
@@ -169,16 +165,43 @@ class YahooStock implements StockProvider
 		return $this->isStock();
 	}
 	
+	private function _create_context()
+	{
+		$this->context = stream_context_create(array(
+		'http' => array(
+			'method' => "GET",
+			'header' => 
+				"User-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.87 Safari/537.36\r\n"
+				."Cookie: ".self::COOKIE."\r\n"
+			)
+		));
+		return true;
+	}
+	
+	private function _fopen_handle()
+	{
+		if(is_null($this->h))
+			$this->h = fopen($this->getURL(), 'r', null, $this->context);
+		//TODO : dynamicly get crumb and cookie if unauthorized.
+		return $this->h;
+	}
+	
 	public function isStock()
 	{
-		$h = get_headers($this->getURL());
-		return $h[0] == 'HTTP/1.1 200 OK' ? true : false;
+		return ($this->_fopen_handle() === false) ? false : true;
+// 		$h = get_headers($this->getURL());
+// 		print_r($h);
+// 		return $h[0] == 'HTTP/1.1 200 OK' ? true : false;
 	}
 	
 	public function getURL()
 	{
-// 		print($this->url.'?'.http_build_query($this->params));
-		return self::STOCKFEED.'?'.http_build_query($this->params);
+		return self::STOCKFEED.$this->s.'?'.http_build_query($this->params);
+	}
+	
+	public function __destruct()
+	{
+		@fclose($this->h);
 	}
 	
 	public function __toString()
