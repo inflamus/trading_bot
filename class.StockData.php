@@ -1,5 +1,4 @@
 <?php
-//UNUSED
 class StockData
 {
 	use InlineConstructor;
@@ -17,8 +16,8 @@ class StockData
 	 * 		[AdjustedClose] // ajusté par le dividende et les divisions si il y a
 	 * 	),
 	 */
-	public $date, $open, $high, $low, $close, $volume, $adjclose;
-	public function __construct(Stock $stock)
+	public $date = "", $open = .0, $high = .0, $low = .0 , $close = .0, $volume = 2, $adjclose = .0, $TA = array();
+	public function __construct()
 	{
 		return $this;
 	}
@@ -38,8 +37,11 @@ class StockData
 	
 	public function __set($n, $v)
 	{
-		if(isset($this->$n)) && empty($this->$n)
+		if(isset($this->$n))
+		{
+			settype($v, gettype($this->$n));
 			$this->$n = (float)$v;
+		}
 		else
 			throw new Exception('Error, '.$n.' already set as '.$this->$n.' : $v.');
 		return $this;
@@ -55,9 +57,21 @@ class StockData
 	public function __call($n, $arg)
 	{
 		if(!empty($arg))
-			$this->$n = $arg[0];
+			$this->__set($n, $arg[0]);
 		else
 			return $this->$n;
+		return $this;
+	}
+	
+	public function TA($name, $val = null)
+	{
+		if(is_null($val))
+			if(isset($this->TA[$name]))
+				return $this->TA[$name];
+			else
+				return false; // error
+		else
+			$this->TA[$name] = $val;
 		return $this;
 	}
 

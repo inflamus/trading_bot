@@ -48,17 +48,6 @@ class ABCBourseStock extends ABCBourse implements StockProvider
 		$this->Name = $re->d->Name;
 		foreach($re->d->QuoteTab as $v)
 		{
-			/*
-				 * **** ORDERED BY DATE FROM OLDEST TO NEWEST *****
-				 * [date] => array( //date(string) as yyyy-mm-dd
-				 * 		[Open],		//(float)
-				 * 		[High],		//(float)
-				 * 		[Low],		//(float)
-				 * 		[Close],	//(float)
-				 * 		[Volume],	//(int)
-				 * 		[AdjustedClose] // ajusté par le dividende et les divisions si il y a
-				 * 	),
-				 */
 			if((int)$this->XPeriod < 0)
 			{
 				$date = str_split($v->d, 2);
@@ -66,7 +55,14 @@ class ABCBourseStock extends ABCBourse implements StockProvider
 			}
 			else 
 				$date = $v->d;
-			yield $date => array($v->o, $v->h, $v->l, $v->c, $v->v, $v->c); // adjustedclose is close 
+// 			yield $date => array($v->o, $v->h, $v->l, $v->c, $v->v, $v->c); // adjustedclose is close 
+			yield $date => StockData::__New()
+				->open	($v->o)
+				->close	($v->c)
+				->high	($v->h)
+				->low	($v->l)
+				->volume($v->v)
+				;
 		}
 	}
 	

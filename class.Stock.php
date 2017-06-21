@@ -63,24 +63,17 @@ class StockQuote extends StockCache implements Iterator
 	const PROVIDER_YAHOOCACHE = 'YahooCacheStock';
 	const PROVIDER_ABCBOURSE = 'ABCBourseStock';
 	
-	const DEFAULT_SUB = 3; // CLOSE
+	const DEFAULT_SUB = "close"; // CLOSE
 	
-	public static $YahooSBF120 = array('SOLB.BR', 'LHN.PA', 'AF.PA', 'VCT.PA', 'ALT.PA', /*'ICAD.PA',*/ 'ERF.PA', 'BOL.PA', 'NEX.PA', 'ACA.PA', 'SOP.PA', 'MAU.PA', 'ATO.PA', 'RCF.PA', 'RMS.PA', 'MMT.PA', 'DIM.PA', 'UBI.PA', 'TFI.PA', 'FDR.PA', 'ATE.PA', 'SAF.PA', 'IPS.PA', 'DEC.PA', 'AI.PA', 'CGG.PA', 'CA.PA', 'CNP.PA', 'FP.PA', 'OR.PA', 'VK.PA', 'AC.PA', 'EN.PA', 'NEO.PA', 'SAN.PA', 'CS.PA', 'BN.PA', 'KN.PA', 'RI.PA', 'NK.PA', 'BB.PA', 'MC.PA', 'RF.PA', 'EO.PA', 'MF.PA', 'SW.PA', 'RUI.PA', 'ML.PA', 'HO.PA', 'KER.PA', 'UG.PA', 'EI.PA', 'SK.PA', 'HAV.PA', 'LI.PA', 'SU.PA', 'VIE.PA', 'POM.PA', 'UL.PA', 'SGO.PA', 'CAP.PA', 'ING.PA', 'DG.PA', 'CO.PA', 'ZC.PA', 'VIV.PA', /*'ALU.PA',*/ 'MMB.PA', /*'FR.PA', */'RCO.PA', 'FGR.PA', 'PUB.PA', 'DSY.PA', 'GLE.PA', 'BNP.PA', 'TEC.PA', 'RNO.PA', 'ORA.PA', 'ORP.PA', 'ILD.PA', 'AMUN.PA', 'GNFT.PA', 'ELE.PA', 'BVI.PA', 'GFC.PA', 'BIM.PA', 'NXI.PA', 'SAFT.PA', 'ENGI.PA', 'ALO.PA', 'ETL.PA', 'MERY.PA', 'EDF.PA', 'IPN.PA', 'LR.PA', 'AKE.PA', 'IPH.PA', 'ADP.PA', 'KORI.PA', 'SCR.PA', 'DBV.PA', 'RXL.PA', 'GET.PA', 'SEV.PA', 'EDEN.PA', 'TCH.PA', 'NUM.PA', 'GTT.PA', 'ELIOR.PA', 'WLN.PA', 'ELIS.PA', 'SPIE.PA', 'EUCAR.PA', /*'SESG.PA',*/ 'MT.PA', 'APAM.AS','STM.PA', 'AIR.PA', 'GTO.PA', 'ENX.PA', 'CDI.PA', 'NOKIA.PA');
-	public static $YahooCAC40 = array('AC.PA', 'ACA.PA', 'AI.PA', 'AIR.PA', 'ALO.PA', 'BN.PA', 'BNP.PA', 'CA.PA', 'CAP.PA', 'CS.PA', 'DG.PA', 'EI.PA', 'EN.PA', 'ENGI.PA', 'FP.PA', /*'FR.PA',*/ 'GLE.PA', 'KER.PA'/*, 'LHN.PA'*/, 'LI.PA', 'LR.PA', 'MC.PA', 'ML.PA', 'MT.PA', /*'NOKIA.PA',*/ 'OR.PA', 'ORA.PA', 'PUB.PA', 'RI.PA', 'RNO.PA', 'SAF.PA', 'SAN.PA', 'SGO.PA', 'SOLB.BR', 'SU.PA', 'TEC.PA', 'UG.PA', 'UL.PA', 'VIE.PA', 'VIV.PA');
+//	public static $YahooSBF120 = array('SOLB.BR', 'LHN.PA', 'AF.PA', 'VCT.PA', 'ALT.PA', /*'ICAD.PA',*/ 'ERF.PA', 'BOL.PA', 'NEX.PA', 'ACA.PA', 'SOP.PA', 'MAU.PA', 'ATO.PA', 'RCF.PA', 'RMS.PA', 'MMT.PA', 'DIM.PA', 'UBI.PA', 'TFI.PA', 'FDR.PA', 'ATE.PA', 'SAF.PA', 'IPS.PA', 'DEC.PA', 'AI.PA', 'CGG.PA', 'CA.PA', 'CNP.PA', 'FP.PA', 'OR.PA', 'VK.PA', 'AC.PA', 'EN.PA', 'NEO.PA', 'SAN.PA', 'CS.PA', 'BN.PA', 'KN.PA', 'RI.PA', 'NK.PA', 'BB.PA', 'MC.PA', 'RF.PA', 'EO.PA', 'MF.PA', 'SW.PA', 'RUI.PA', 'ML.PA', 'HO.PA', 'KER.PA', 'UG.PA', 'EI.PA', 'SK.PA', 'HAV.PA', 'LI.PA', 'SU.PA', 'VIE.PA', 'POM.PA', 'UL.PA', 'SGO.PA', 'CAP.PA', 'ING.PA', 'DG.PA', 'CO.PA', 'ZC.PA', 'VIV.PA', /*'ALU.PA',*/ 'MMB.PA', /*'FR.PA', */'RCO.PA', 'FGR.PA', 'PUB.PA', 'DSY.PA', 'GLE.PA', 'BNP.PA', 'TEC.PA', 'RNO.PA', 'ORA.PA', 'ORP.PA', 'ILD.PA', 'AMUN.PA', 'GNFT.PA', 'ELE.PA', 'BVI.PA', 'GFC.PA', 'BIM.PA', 'NXI.PA', 'SAFT.PA', 'ENGI.PA', 'ALO.PA', 'ETL.PA', 'MERY.PA', 'EDF.PA', 'IPN.PA', 'LR.PA', 'AKE.PA', 'IPH.PA', 'ADP.PA', 'KORI.PA', 'SCR.PA', 'DBV.PA', 'RXL.PA', 'GET.PA', 'SEV.PA', 'EDEN.PA', 'TCH.PA', 'NUM.PA', 'GTT.PA', 'ELIOR.PA', 'WLN.PA', 'ELIS.PA', 'SPIE.PA', 'EUCAR.PA', /*'SESG.PA',*/ 'MT.PA', 'APAM.AS','STM.PA', 'AIR.PA', 'GTO.PA', 'ENX.PA', 'CDI.PA', 'NOKIA.PA');
+//	public static $YahooCAC40 = array('AC.PA', 'ACA.PA', 'AI.PA', 'AIR.PA', 'ALO.PA', 'BN.PA', 'BNP.PA', 'CA.PA', 'CAP.PA', 'CS.PA', 'DG.PA', 'EI.PA', 'EN.PA', 'ENGI.PA', 'FP.PA', /*'FR.PA',*/ 'GLE.PA', 'KER.PA'/*, 'LHN.PA'*/, 'LI.PA', 'LR.PA', 'MC.PA', 'ML.PA', 'MT.PA', /*'NOKIA.PA',*/ 'OR.PA', 'ORA.PA', 'PUB.PA', 'RI.PA', 'RNO.PA', 'SAF.PA', 'SAN.PA', 'SGO.PA', 'SOLB.BR', 'SU.PA', 'TEC.PA', 'UG.PA', 'UL.PA', 'VIE.PA', 'VIV.PA');
 
 	public 	$stock = null;
 	public	$period = StockProvider::PERIOD_DAILY;
 	private	$data = array(
 				/*
 				 * **** ORDERED BY DATE FROM OLDEST TO NEWEST *****
-				 * [date] => array( //date(string) as yyyy-mm-dd
-				 * 		[Open],		//(float)
-				 * 		[High],		//(float)
-				 * 		[Low],		//(float)
-				 * 		[Close],	//(float)
-				 * 		[Volume],	//(int)
-				 * 		[AdjustedClose] // ajusté par le dividende et les divisions si il y a
-				 * 	),
+				 * [date] => StockData Object (open, close, high, low, volume, adjclose)
 				 */
 				)
 			;
@@ -91,7 +84,7 @@ class StockQuote extends StockCache implements Iterator
 	 */
 	private $noSliced = true;
 	private $position = '';
-	private $subdata = 3; // default to Close
+	private $subdata = self::DEFAULT_SUB; // default to Close
 	
 	public function __construct(Stock $stock, $period = StockProvider::PERIOD_DAILY, $provider = self::PROVIDER_YAHOO)
 	{
@@ -134,6 +127,10 @@ class StockQuote extends StockCache implements Iterator
 	
 	public function __destruct()
 	{
+		// Caching
+		if(parent::CACHE && $this->provider->isCachable() && $this->noSliced)
+			$this->_serialize($this->provider, $this->stock, $this->period, $this->data);
+			
 		unset($this->stock,$this->data,$this->provider); // Free memory
 		return true;
 	}
@@ -152,10 +149,8 @@ class StockQuote extends StockCache implements Iterator
 		}
 		//Retrieving latest data
 		$this->data += iterator_to_array($this->provider->getData());
-		
-		// Caching
-		if(parent::CACHE && $this->provider->isCachable() && $this->noSliced)
-			$this->_serialize($this->provider, $this->stock, $this->period, $this->data);
+		//TODO make stockdata cache analysis indicators, and stock analysis check on cache to unserialize only necessary.
+
 		return true;
 	}
 	
@@ -224,55 +219,70 @@ class StockQuote extends StockCache implements Iterator
 
 	public function getLast($sub = self::DEFAULT_SUB)
 	{
-		return end($this->data)[$this->subDataIndex($sub)];
+		return end($this->data)->$sub;
 	}
 	
 	public function getFirst($sub = self::DEFAULT_SUB)
 	{
-		return array_shift(array_slice($this->data, 0, 1))[$this->subDataIndex($sub)];
+		return array_shift(array_slice($this->data, 0, 1))->$sub;
 	}
 	
-	public function subDataIndex($d = self::DEFAULT_SUB)
-	{
-		$a = array('O', 'H', 'L', 'C', 'V', 'A');
-		if(is_int($d) && $d<count($a) && $d>0)
-			return $d;
-		elseif(is_string($d) && ($c = array_search(strtoupper($d[0]), $a))!==false)
-			return $c;
-		else
-			throw new Exception('Unknown data type ['.$d.'].');
-	}
+// 	public function subDataIndex($d = self::DEFAULT_SUB)
+// 	{
+// // 		$a = array('O', 'H', 'L', 'C', 'V', 'A');
+// // 		if(is_int($d) && $d<count($a) && $d>0)
+// // 			return $d;
+// 		/*else*/if(is_string($d) && ($c = array_search(strtoupper($d[0]), $a))!==false)
+// 			return $c;
+// 		else
+// 			throw new Exception('Unknown data type ['.$d.'].');
+// 	}
 	/*
 	 * Iterator functions
 	 */
 	public function setSubData($d = self::DEFAULT_SUB)
 	{
-		$this->subdata = $this->subDataIndex($d);
+		$this->subdata = $d=="TA" ? "TA" : strtolower($d);
 		return $this;
+	}
+	public function _Array($sub, $return_as_array = false)
+	{
+		if($return_as_array)
+		{
+			$re = array();
+			foreach($this->setSubData($sub) as $k => $v)
+				$re[$k] = $v;
+			return $re;
+		}
+		return $this->setSubData($sub);
 	}
 	public function Volume($return_as_array = false)
 	{
-		return $return_as_array && function_exists('array_column') ? array_column($this->data, 4) : $this->setSubData(4);
+		return $this->_Array('volume', $return_as_array);
 	}
 	public function Open($return_as_array = false)
 	{
-		return $return_as_array && function_exists('array_column') ? array_column($this->data, 0) : $this->setSubData(0);
+		return $this->_Array('open', $return_as_array);
 	}
 	public function Low($return_as_array = false)
 	{
-		return $return_as_array && function_exists('array_column') ? array_column($this->data, 1) : $this->setSubData(1);
+		return $this->_Array('low', $return_as_array);
 	}
 	public function High($return_as_array = false)
 	{
-		return $return_as_array && function_exists('array_column') ? array_column($this->data, 2) : $this->setSubData(2);
+		return $this->_Array('high', $return_as_array);
 	}
 	public function AdjustedClose($return_as_array = false)
 	{
-		return $return_as_array && function_exists('array_column') ? array_column($this->data, 5) : $this->setSubData(5); // Adjusted close, in euros.
+		return $this->_Array('adjclose', $return_as_array);
 	}
 	public function Close($return_as_array = false)
 	{
-		return $return_as_array && function_exists('array_column') ? array_column($this->data, 3) : $this->setSubData(3);
+		return $this->_Array('close', $return_as_array);
+	}
+	public function TAData($return_as_array = false)
+	{
+		return $this->_Array('TA', $return_as_array);
 	}
 	
 	/* Iterator functions */
@@ -283,7 +293,7 @@ class StockQuote extends StockCache implements Iterator
 	}
 	public function current() {
 // 		var_dump(__METHOD__);
-		return $this->data[$this->position][$this->subdata]; // get AdjustedClose data;
+		return $this->data[$this->position]->{$this->subdata}; // get AdjustedClose data;
 	}
 	public function key() {
 // 		var_dump(__METHOD__);

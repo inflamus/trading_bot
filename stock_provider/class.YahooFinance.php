@@ -143,14 +143,21 @@ class YahooStock implements StockProvider
 			while(($a = fgetcsv($this->h, 128, ",")) !== false)
 			{
 				if($a[0] == "Date") continue;
-				yield $a[0] => array(
-					(float)$a[1], // Open
-					(float)$a[2], // High
-					(float)$a[3], //Low
-					(float)$a[4], //Close
-					(int)$a[6],   //Volume
-					(float)$a[5]  //Adj Close
-					);
+// 				yield $a[0] => array(
+// 					(float)$a[1], // Open
+// 					(float)$a[2], // High
+// 					(float)$a[3], //Low
+// 					(float)$a[4], //Close
+// 					(int)$a[6],   //Volume
+// 					(float)$a[5]  //Adj Close
+// 					);
+				yield $a[0] => StockData::__New()
+					->open($a[1])
+					->high($a[2])
+					->low($a[3])
+					->close($a[4])
+					->adjclose($a[5])
+					->volume($a[6]);
 			}
 		}
 	}

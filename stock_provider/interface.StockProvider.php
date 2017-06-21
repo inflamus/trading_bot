@@ -22,7 +22,7 @@ interface StockProvider
 		// $year may be a int(4), and then requires $month and $day to be not null,
 		// or an array($y, $m, $d) or a string of english formated date
 // 	public function To($year, $month=1, $day = 1); //Idem
-	public function getData() /*: Generator pHP7*/; // Get the data array with the constant format as Stock::$data[]
+	public function getData() /*: Generator:StockData pHP7*/; // Get the data object
 	// Autoconf : if return false, thats mean it is unsupported by the stockprovider
 	public function Daily();
 	public function Weekly();
