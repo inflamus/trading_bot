@@ -5,6 +5,8 @@ class YahooStock implements StockProvider
 	const STOCKFEED = 'https://query1.finance.yahoo.com/v7/finance/download/';
 	const CAC40 = '^FCHI';
 	const COOKIE = "B=d1vq4ppbh4gfq&b=3&s=g7";
+	const CRED_FILE = "YAHOOCREDENTIALS.txt";
+	const USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.87 Safari/537.36";
 	
 	private $s = "";
 	private $params = array(
@@ -14,6 +16,7 @@ class YahooStock implements StockProvider
 		'events' => 'history',
 		'crumb' => '3V80Kj7qyxp',
 		);
+	private $COOKIE = self::COOKIE;
 	private $context = null;
 	private $h = null;
 	public function __construct(Stock $stock)
@@ -21,8 +24,49 @@ class YahooStock implements StockProvider
 		$this->params['period1'] = strtotime("-1 year");
 		$this->params['period2'] = strtotime("today 00:00");
 		$this->s = $stock->Yahoo();
+		$this->generateCrumb(); //credentials
 		$this->_create_context();
 		return $this;
+	}
+	
+	private function generateCrumb($force = false)
+	{
+	//{"crumb":"cK3eeMIjJV4"}
+	// COOKIE "B=.+";
+		$file = sys_get_temp_dir()."/".self::CRED_FILE;
+		$cookie = "";
+		$crumb = "";
+		if($force)	@unlink($file);
+		if(!is_readable($file))
+		{
+// 			$url = "https://finance.yahoo.com";
+			$url = "https://fr.finance.yahoo.com/quote/".$this->s."/history?p=".$this->s;
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+			curl_setopt($ch, CURLOPT_HEADER, 1);
+			$response = curl_exec($ch);
+			$header = substr($response, 0, $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE));
+			$body = substr($response, $header_size);
+			if(
+				preg_match("/B=[a-z0-9]+&b=[0-9]+&s=[a-z0-9]+/", str_replace("\r\n", "", $header), $_cookie) &&
+				preg_match('/CrumbStore":\{"crumb":"([a-zA-Z0-9]+)"/s', $body, $_crumb))
+				{
+					$crumb = $_crumb[1];
+					$cookie = $_cookie[0];
+					file_put_contents($file, serialize(compact("crumb", "cookie")));				
+				}
+			else
+			{
+				throw new Exception('Error getting yahoo credentials.'.$url.$response);
+			}
+			curl_close($ch);
+		}
+		else
+			extract(unserialize(file_get_contents($file)));
+		$this->COOKIE = $cookie;
+		$this->params['crumb'] = $crumb;
+		return true;
 	}
 
 	public function isCachable()
@@ -178,8 +222,8 @@ class YahooStock implements StockProvider
 		'http' => array(
 			'method' => "GET",
 			'header' => 
-				"User-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.87 Safari/537.36\r\n"
-				."Cookie: ".self::COOKIE."\r\n"
+				"User-agent: ".self::USER_AGENT."\r\n"
+				."Cookie: ".$this->COOKIE."\r\n"
 			)
 		));
 		return true;
@@ -188,8 +232,22 @@ class YahooStock implements StockProvider
 	private function _fopen_handle()
 	{
 		if(is_null($this->h))
-			$this->h = fopen($this->getURL(), 'r', null, $this->context);
-		//TODO : dynamicly get crumb and cookie if unauthorized.
+		{
+			static $tries = 0;
+			if($tries++ > 2) throw new Exception('Can\'t get to have a valid url file socket. Exiting.');
+			if(($this->h = @fopen($this->getURL(), 'r', null, $this->context)) === false)
+				switch((int)substr($http_response_header[0], 9, 3))
+				{
+					case 401: //handle unauthorized error
+						$this->generateCrumb(true);
+						return $this->_fopen_handle();
+					break;
+					default: 
+						return false;
+						throw new Exception('Yahoo URL fetch error.'.print_r($http_response_header, true));
+					break;
+				}
+		}
 		return $this->h;
 	}
 	

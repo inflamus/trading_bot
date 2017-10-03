@@ -3,10 +3,10 @@
 
 class StockAnalysis
 {
-	public static $Weight = array(
-		'MACD' 	=> 2,
-		'MM'	=> 4,
-		);
+// 	public static $Weight = array(
+// 		'MACD' 	=> 2,
+// 		'MM'	=> 4,
+// 		);
 		
 		private $stock = null;
 		private $buildCache = array();
@@ -51,28 +51,62 @@ class StockAnalysis
 		{
 			if(substr($function_name, 0, 7) != "trader_")
 				$function_name = "trader_".$function_name;
-			$hashed_name = $function_name.':'.implode(':', array_map(function($a){return !is_array($a) ? $a : null;}, $args));
-			// try to use cached values today.
-			if(!empty($this->stock->getLast('TA')[$hashed_name]))
-				return $this->_cache($hashed_name);
-			// else
-			$return = call_user_func_array($function_name, $args);
-			if($return !== false && !empty($return))
-			{
-				$return = array_values(array_pad($return, -1*count($this->stock->TAData(true)), 0));
-				$i=0;
-				foreach($this->stock->data as $k => $obj)
-				{
-// 				print_r($obj);
-// 				exit();
-					$obj->TA(
-						$hashed_name, 
-						$this->buildCache['TA'][$hashed_name][$k] = $return[$i++]
-					);
-				}
-			}
 			
-			return $this->_cache($hashed_name);
+			//memoization
+			static $cache;
+			$hashed_name = md5(serialize(func_get_args()));
+		
+			return 
+				(!is_null($cache) && array_key_exists($hashed_name, $cache)) ? 
+					$cache[$hashed_name] : 
+					($cache[$hashed_name] =
+								$this->_indexOnDate(call_user_func_array($function_name, $args))
+					);				
+
+			//
+			
+// 			$hashed_name = $function_name.':'.implode(':', array_map(function($a){return !is_array($a) ? $a : null;}, $args));
+// 			// try to use cached values today.
+// 			if(!empty($this->stock->getLast('TA')[$hashed_name]))
+// 				return $this->_cache($hashed_name);
+// 			// else
+// 			$return = call_user_func_array($function_name, $args);
+// 			if($return !== false && !empty($return))
+// 			{
+// 				//TODO : handle nested arrays
+// 				$return = array_values(array_pad($return, -1*count($this->stock->TAData(true)), 0));
+// 				$i=0;
+// 				foreach($this->stock->data as $k => $obj)
+// 				{
+// 	// 			print_r($obj);
+// 	// 			exit();
+// 					$obj->TA(
+// 						$hashed_name, 
+// 						$this->buildCache['TA'][$hashed_name][$k] = $return[$i++]
+// 					);
+// 				}
+// 			
+// 			}
+// 			
+// 			return $this->_cache($hashed_name);
+		}
+		
+		private function _indexOnDate($arr, $index = null)
+		{
+			if(is_array(current($arr)))
+			{ // handle nested arrays
+				$re = array();
+				foreach($arr as $key => $a)
+					$re[$key] = $this->_indexOnDate($a);
+				return $re;
+			}
+			return array_combine(
+				array_keys($index == null ? $this->stock->TAData(true) : $index), 
+				array_pad(
+					array_values($arr), 
+					-1*count($index == null ? $this->stock->TAData(true) : $index), 
+					null)
+				);
 		}
 		
 		/* Base functions */
@@ -81,104 +115,87 @@ class StockAnalysis
 		{
 			return $this->_trader_("rsi", array($this->getData('close'), $timeperiod));
 		}
+		public function FastRSI()
+		{
+			return $this->RSI(9);
+		}
+		public function SlowRSI()
+		{
+			return $this->RSI(25);
+		}
+		
 		//MACD :array(..array(macd, signal, macd-signal_histogram)..)
 		public function MACD($short = 12, $long = 26, $signal = 9)
 		{
 			return $this->_trader_("macd", array($this->getData('close'), $short, $long, $signal));
 		}
 		
-// 		public function SimpleMACD($short = 12, $long = 26, $signal = 9)
-// 		{
-// 			// Data.
-// 			// Extract the last data 5 times the long period, for performance reasons.
-// 			$macd = trader_macd($this->cache, $short, $long, $signal);
-// 			return end($macd[2])>0 ? 1 : -1;
-// 		}
-// 		public function SignalMACD($short = 12, $long = 26, $signal = 9)
-// 		{
-// 			// Data.
-// 			// Extract the last data 5 times the long period, for performance reasons.
-// 			$macd = trader_macd($this->cache, $short, $long, $signal);
-// 			if(end($macd[2])>0 && prev($macd[2])<0)
-// 				return 1;
-// 			if(end($macd[2])<0 && prev($macd[2])>0)
-// 				return -1;
-// 			return 0;
-// 			// 		return end($macd[2])>0 &&  ? 1 : -1;
-// 		}
-// 		public function MACD($short=12, $long=26, $signal=9)
-// 		{
-			// Data.
-			// Extract the last data 5 times the long period, for performance reasons.
-// 			$macd = trader_macd($this->cache, $short, $long, $signal);
-			
-			// 		print_r(array_combine(
-			// 			array_slice(array_keys($this->cache), -50), 
-			// 			array_slice(array_values($macd[0]), -50)
-			// 			));
-			/*
-			 * return array(
-			 * 	array(MACDvalues),
-			 * 	array(Signal values),
-			 * 	array(Divergence values)
-			 */
-// 			$return = 0;
-// 			end($macd[0]);
-// 			// 		print('DEBUG : last occurence : '.key($macd[0]));
-// 			$last = key($macd[0]);
-// 			if($macd[2][$last] > 0) // MACD supérieure à son signal -- Hausse
-// 			{
-// 				// Maintenant on va pondérer la force de ce signal de hausse.
-// 				// 			print('DEBUG : MACD Au dessus de son signal au dernier offset '.$last.' : '.$macd[0][$last].";".$macd[1][$last].";".$macd[2][$last]."\n");
-// 				$crossed = 0;
-// 				// savoir quand la MACD a crossé son signal 
-// 				while($macd[2][$last+ --$crossed]>0);
-// 				// 				$crossed--;
-// 				// 			print('DEBUG : Dernier MACD inférieur a son signal a l\'offset : last '.$crossed."\n");
-// 				$return += $crossed; // On décrémente la valeur de retour de la somme des jours passés.
-// 				// Ainsi, plus la macd a crossé il y a longtemps, moins le signal est à l'achat.
-// 				//
-// 				// Verifier combien de temps la MACD a été sous son signal auparavant.
-// 				// Regle de verification classique : 14 periodes minimales
-// 				$verif = 0;
-// 				while($macd[2][$last+$crossed+ --$verif]<0);
-// 				// 			print('DEBUG : MACD inférieur a son signal pendant :'.$verif."\n");
-// 				$return -= $verif; // On incrémente par le nombre de jour précédent le cross où la MACD a été inférieure à son signal. 
-// 				//C'est la règle de validation minimale à 14 jours pour que la MACD ait du sens.
-// 				//Et plus elle est longue, plus elle a du sens.
-// 				//
-// 				// Maintenant, Check le cross de la ligne 0, signifiant le passage au dessus de ses moyennes mobiles exponentielles.
-// 				// 			print('DEBUG : MACD MAX '. max($macd[0])." MACD MIN ".min($macd[0])." MACD :".$macd[0][$last]."\n");
-// 				// 			$potentiel = max($macd[0])-min($macd[0])+$macd[0][$last];
-// 				// 			print('DEBUG : Potentiel : '.$potentiel."\n");
-// 				// Coefficient = Max-MACD / Min-MACD
-// 				// => Maximal lorsque la MACD est proche de son minimum.
-// 				// => <1, proche de 0 lorsque la MACD a dépassé la médiane entre le maximum et le minimum historique sur les dernieres MACD.
-// 				$coeff = round(
-// 					(-1)*
-// 					(max($macd[0])-$macd[0][$last])
-// 					/(min($macd[0])-$macd[0][$last])
-// 					, 3);
-// 					// 			print('DEBUG : Result initial '.$return."\n");
-// 					// 			print('DEBUG : Coeff : '.$coeff."\n");
-// 					$return = round($coeff * $return);
-// 					
-// 					// 			print('DEBUG : MACD score final : '.$return."\n");
-// 					
-// 			}
-// 			else // la MACD est Inférieure à son signal.
-// 			{
-// 				// 			print('DEBUG : MACD inférieure à son signal : '.$macd[2][$last]."\n");
-// 				
-// 				$return = $macd[0][$last]<0 ? -500 : 0; 
-// 				// retourne -500 si la MACD est négative, => SELL
-// 				// et 0 si elle reste positive. => HOLD
-// 			} 
-// 			
-// 			return $return;
-// 			
-// 		}
-// 		
+		public function ADX($timeperiod = 14)
+		{
+			return $this->_trader_("adx", array($this->getData('high'), $this->getData('low'), $this->getData('close'), $timeperiod));
+		}
+		
+		public function ADXR($timeperiod = 14)
+		{
+			return $this->_trader_("adxr", array($this->getData('high'), $this->getData('low'), $this->getData('close'), $timeperiod));
+		}
+
+		/* DMI non différencié
+		public function DMI($timeperiod = 14)
+		{
+			return $this->_trader_("dx", array($this->getData('high'), $this->getData('low'), $this->getData('close'), $timeperiod));
+		}
+		public function DX($timeperiod = 14) // Alias DMI
+		{
+			return $this->DMI($timeperiod);
+		}*/
+		
+		public function DMIPlus($timeperiod = 14)
+		{
+			return $this->_trader_('plus_di', array($this->getData('high'), $this->getData('low'), $this->getData('close'), $timeperiod));
+		}
+		public function DMIP($timeperiod = 14)
+		{
+			return $this->DMIPlus($timeperiod);
+		}
+		public function DIP($timeperiod = 14)
+		{
+			return $this->DMIPlus($timeperiod);
+		}
+		
+		public function DMI($p, $timeperiod = 14)
+		{
+			if((is_int($p) && $p > 0) 
+				|| (is_bool($p) && $p == true) 
+				|| (is_string($p) && (strtolower($p[0])=='p' || $p[0]=='+'))
+				)	
+				return $this->DMIPlus($timeperiod);
+			return $this->DMIMinus($timeperiod);
+		}
+		public function DI($p, $timeperiod = 14)
+		{
+			return $this->DMI($p, $timeperiod);
+		}
+		
+		public function DMIMinus($timeperiod = 14)
+		{
+			return $this->_trader_('minus_di', array($this->getData('high'), $this->getData('low'), $this->getData('close'), $timeperiod));
+		}
+		public function DMIM($timeperiod = 14)
+		{
+			return $this->DMIMinus($timeperiod);
+		}
+		public function DIM($timeperiod = 14)
+		{
+			return $this->DMIMinus($timeperiod);
+		}
+		
+		public function StochRSI($timeperiod = 14, $fastK = 3, $fastD = 3, $fastDM = TRADER_MA_TYPE_SMA)
+		{
+			return $this->_trader_("stochrsi", array($this->getData('close'), $timeperiod, $fastK, $fastD, $fastDM));
+	
+		}
+	
 		public function Volatility(/*$period = 200*/)
 		{
 			// 		$vol = trader_var(array_slice($this->cache, $period *-1), $period);
@@ -227,72 +244,11 @@ class StockAnalysis
 			return compact('pivot','support1','support2','resist1','resist2');
 		}
 		
-		// 	Moving Average (Moyenne Mobiles)
-		//	Return a score from -6 to +6,
-		// 	public function MM($short=20, $moy = 50, $long=100)
-		// 	{
-		// 		$ret = 0;
-		// 		$mm20 = end(trader_ma($this->cache, $short, TRADER_MA_TYPE_SMA));
-		// 		$mm50 = end(trader_ma($this->cache, $moy, TRADER_MA_TYPE_SMA));
-		// 		$mm100 = end(trader_ma($this->cache, $long, TRADER_MA_TYPE_SMA));
-		// 		
-		// 		$ret += (end($this->cache) - $mm20)/$mm20;// haussier ou baissier court terme
-		// 		$ret += (($mm20 - $mm50)/$mm50)*2; // haussier moyen terme
-		// 		$ret += (($mm50 - $mm100)/$mm100)*3; // haussier long terme
-		// 		
-		// 		return $ret;
-		// 	}
-		
 		// Returns the percentage of the diff between the short and the long value.
-		public function MM($short=1, $long = 20, $prev = false)
+		public function MM($period=1, $mmtype = TRADER_MA_TYPE_SMA)
 		{
-			$short = $short==1 ? $this->cache : trader_ma(@array_slice($this->cache, $short*-5), $short, TRADER_MA_TYPE_SMA);
-			$long = trader_ma(@array_slice($this->cache, $long*-5), $long, TRADER_MA_TYPE_SMA);
-			
-			$sh = end($short);
-			$ln = end($long);
-			if($prev)
-			{	$sh = prev($short);
-				$ln = prev($long);
-			}
-			return ($sh-$ln)/$ln;
+			return $this->_trader_('ma', array($this->getData('close'), $period, $mmtype));
 		}
-		
-		/* Synthesis of Moving Averages */
-		public function SMM($short = 20, $mid = 50, $long = 100)
-		{
-			$re = array(
-				'Short' => array(
-					$this->MM(1, $short),
-					$this->MM(1, $short, true)
-					),
-					'Mid' => array(
-						$this->MM($short, $mid),
-						// 				$this->MM($short, $mid, true)
-						),
-						'Long' => array(
-							$this->MM($mid, $long),
-							// 				$this->MM($mid, $long, true)
-							),
-							);
-							if($re['Short'][0] <0 && $re['Short'][0]-$re['Short'][1]<0) 
-								//la MM courte passe a la baisse le 0, signal de vente.
-								return -1;
-							if($re['Short'][0] <0 && $re['Short'][0]-$re['Short'][1]>0)
-								//MM courte haussiere.
-								if($re['Short'][0] > $re['Mid'][0] ||
-									$re['Short'][0] > $re['Long'][0])
-									// Si la MM courte coupe une moyenne plus longue à la hausse, signal d'achat.
-									return 1;
-								// Sinon, retourne un signal neutre.
-								return 0;
-							// 		return $re;
-		}
-		public function SMA($s = 20, $m = 50, $l = 100)
-		{
-			return $this->SMM($s, $m, $l);
-		}
-		// 	private function Oscillator($data )
 		
 		public function Williams($period = 14, $surachat = -20, $survente = -80)
 		{
@@ -323,7 +279,8 @@ class StockAnalysis
 // 					
 					
 		}
-		
+
+		/* RSI
 // 		public function RSI($period = 14, $limbasse = 30, $limhaute = 70)
 // 		{
 // 			//TODO : interpreter
@@ -347,15 +304,9 @@ class StockAnalysis
 // 					else
 // 						return 0;
 // 					return 0;
-// 		}
-		public function FastRSI()
-		{
-			return $this->RSI(9);
-		}
-		public function SlowRSI()
-		{
-			return $this->RSI(25);
-		}
+// 		}*/
+
+/* RSI35
 // 		public function RSI35()
 // 		{
 // 			return $this->RSI(14, 35);
@@ -379,8 +330,9 @@ class StockAnalysis
 // 		public function SlowRSI40()
 // 		{
 // 			return $this->RSI(25, 40);
-// 		}
-		
+// 		} */
+	
+/* RegressionLineaire
 // 		public function RegressionLineaire($data)
 // 		{
 // 			//TODO : it's for Testing only... see if it can obtain some useful infos
@@ -392,21 +344,21 @@ class StockAnalysis
 // 		public function Trendline()
 // 		{	
 // 			return trader_ht_trendline(array_slice($this->cache, -100));
-// 		}
+// 		}*/
 		
 		public function MOM($period = 12)
 		{
 			return $this->_trader_("mom", array($this->getData('close'), $period));
 		}	
 		
-		public function Bollinger($period = 20, $parm1 = 2.0, $parm2 = 2.0)
+		public function Bollinger($period = 20, $parm1 = 2.0, $parm2 = 2.0, $mtype = TRADER_MA_TYPE_SMA)
 		{
-			return $this->_trader_("bbands", array($this->getData('close'), $period, $parm1, $parm2, TRADER_MA_TYPE_SMA));
+			return $this->_trader_("bbands", array($this->getData('close'), $period, $parm1, $parm2, $mtype));
 		}
 		
 		public function SAR($acc = .02, $max = .2)
 		{
-			return $this->_trader_("sar", array($this->buildData('high'), $this->buildData('how'), $acc, $max));
+			return $this->_trader_("sar", array($this->buildData('high'), $this->buildData('low'), $acc, $max));
 // 			if(end($SAR) < end($this->cache))
 // 				if(prev($SAR) > prev($this->cache))
 // 					return 1;// achat lorsque le SAR passe sous le cours
@@ -432,6 +384,22 @@ class StockAnalysis
 				return 0; // signal neutre*/
 		}
 		
+		public function Aroon($period = 14)
+		{
+			return $this->_trader_('aroon', array($this->getData('high'), $this->getData('low'), $period));
+		}
+		
+		public function AroonOscillator($period = 14)
+		{
+			return $this->_trader_('aroonosc', array($this->getData('high'), $this->getData('low'), $period));
+		}
+		
+		public function ROC($period = 10)
+		{
+			return $this->_trader_('rocr100', array($this->getData('close'), $period));
+		}
+		
+/* Chaikinn		
 		// 	public function Chaikin($period = 21)
 		// 	{
 		// 		//TODO : Wrong function
@@ -456,7 +424,7 @@ class StockAnalysis
 		// 				return -1; // signal de vente
 		// 		return 0;
 		// 				
-		// 	}
+		// 	}*/
 		
 		/* Stochastics  */
 		public $StochHigh = 80, $StochLow = 20;
@@ -466,35 +434,10 @@ class StockAnalysis
 			$this->StochLow = $low;
 			return $this;
 		}
-		public function Stochastic($KPeriod = 14, $slowKPeriod = 3, $slowDPeriod=3)
+		public function Stochastic($KPeriod = 14, $slowKPeriod = 3, $slowDPeriod=3, $kmm = TRADER_MA_TYPE_SMA, $dmm = TRADER_MA_TYPE_SMA)
 		{
-			if($KPeriod <1 || $slowKPeriod <1 || $slowDPeriod <1)
-				throw new LogicException('A Parameter is not valid for the Stochastic function');
-			$sto = trader_stoch(
-				array_slice($this->buildData('High'), $KPeriod *-3),
-				array_slice($this->buildData('Low'), $KPeriod *-3),
-				array_slice($this->buildData('Close'), $KPeriod *-3),
-				$KPeriod,
-				$slowKPeriod,
-				TRADER_MA_TYPE_SMA,
-				$slowDPeriod,
-				TRADER_MA_TYPE_SMA
-				);
-				// 		print_r($sto);
-				$lastSto = end($sto[0]);
-				$prevSto = prev($sto[0]);
-				$lastSig = end($sto[1]);
-				$prevSig = prev($sto[1]);
-				if($lastSto < $this->StochHigh && $prevSto > $this->StochHigh) // cross 80 a la baisse
-					return -1;
-				if($lastSto > $this->StochLow && $prevSto < $this->StochLow) // cross 20 a la hausse,
-					if($lastSto >= $lastSig)// Stochastique a passé son signal, 
-						if($lastSig > $prevSig) // Signal montant
-							return 2;  // Force plus forte.
-							else
-								return 1; // Signal d'achat normal
-								//TODO : Divergences.
-								return 0; // signal neutre;
+			return $this->_trader_("stoch", array($this->getData('high'), $this->getData('low'), $this->getData('close'), $KPeriod, $slowKPeriod, $kmm, $slowDPeriod, $dmm));
+
 		}
 		public function LongStochastic()
 		{
@@ -503,15 +446,33 @@ class StockAnalysis
 		
 		public function OBV()
 		{
-			$OBV = trader_obv(array_slice($this->cache, -60), array_slice($this->buildData('Volume'), -60));
-			// 		return $OBV;
-			return round(end($OBV)/100) > 0 ? 1 : -1;
+			return $this->_indexOnDate($this->_trader_('obv', array($this->getData('close'), $this->getData('volume'))));
 		}
 		
 		// Returns somekind of weight of volumes during the 5 last days.
 		// Donne la puissance de la tendance.
-		public function Volumes($short = 5, $long = 20)
+		public function Volumes($period = 5)
 		{
+			$hashed_name = __FUNCTION__.":$period";
+			// try to use cached values today.
+			if(!empty($this->stock->getLast('TA')[$hashed_name]))
+				return $this->_cache($hashed_name);
+			
+			$arr = array();
+			foreach($this->getData('volume') as $date => $vol)
+			{
+				$arr[] = $vol;
+				if(count($arr >= $period))
+				{
+					if(count($arr)>$period)	
+						array_shift($arr);
+					$this->stock->data[$date]->TA(
+						$hashed_name,
+						$this->buildCache['TA'][$hashed_name][$date] = 
+							round(array_sum($arr)/$period, 4));
+				}
+			}
+			/*
 			return round(
 				round(
 					array_sum(array_slice($this->buildData('Volume'), $short*-1))
@@ -522,18 +483,38 @@ class StockAnalysis
 						, 3);
 						// 			? 1
 						// 			: -1;
+						//TODO : buildCache
+			
+			$this->buildCache['TA'][$hashed_name][$date] = $supertrend;*/
+			return $this->_cache($hashed_name);
 		}
 		public function LongVolumes()
 		{
-			return $this->Volumes(14,28);
+			return $this->VolumesOscillator(14,28);
 		}
-		public function VolumesOscillator($short=5, $long=20)
+		public function VolumesOscillator($short = 5, $long = 20)
 		{
-			return $this->Volumes($short,$long) <1 ? -1 : 1;
-			$mean = array_sum(array_slice($this->buildData('Volume'), $period*-1))/$period;
-			return round(( end($this->buildData('Volume')) - $mean ) / $mean, 3);
+			$hashed_name = __FUNCTION__.":$short:$long";
+			// try to use cached values today.
+			if(!empty($this->stock->getLast('TA')[$hashed_name]))
+				return $this->_cache($hashed_name);
+			
+			$short = $this->Volumes($short);
+			foreach($this->Volumes($long) as $date => $long)
+			{
+				$this->stock->data[$date]->TA(
+					$hashed_name,
+					$this->buildCache['TA'][$hashed_name][$date] = 
+					round($short[$date] / $long, 4));
+			}
+			
+			return $this->_cache($hashed_name);
+			
+// 			return $this->Volumes($short,$long) <1 ? -1 : 1;
+// 			$mean = array_sum(array_slice($this->buildData('Volume'), $period*-1))/$period;
+// 			return round(( end($this->buildData('Volume')) - $mean ) / $mean, 3);
 		}
-		public function VolumeOscillator($short = 5,$long=20)
+		public function VolumeOscillator($short = 5,$long = 20)
 		{
 			return $this->VolumesOscillator($short,$long);
 		}
@@ -544,6 +525,8 @@ class StockAnalysis
 		
 		public function Candle()
 		{
+			
+			throw new Exception("Testing ".__FUNCTION__."...");
 			$open = array_slice($this->buildData('Open'), -21);
 			$high = array_slice($this->buildData('High'), -21);
 			$low = array_slice($this->buildData('Low'), -21);
@@ -651,6 +634,8 @@ class StockAnalysis
 		
 		public function CCI($period = 14) // Commodity Channel Index
 		{
+			return $this->_trader_('cci', array($this->getData('high'), $this->getData('low'), $this->getData('close'), $period));
+/*			
 			$cci = trader_cci(
 				array_slice($this->buildData('High'), $period*-2),
 				array_slice($this->buildData('Low'), $period*-2),
@@ -660,7 +645,7 @@ class StockAnalysis
 					return 1;
 				if(end($cci) <100 && prev($cci)>100) // cross CCI a la baisse ..
 					return -1;
-				return 0;
+				return 0;*/
 				//TODO : Interpret Divergences
 		}
 		
@@ -676,7 +661,7 @@ class StockAnalysis
 			// 		return end($beta)*100;
 			
 		}
-		
+/*Benchmark		
 		// Results seems weird...
 		// 	public function Benchmark()
 		// 	{
@@ -778,7 +763,8 @@ class StockAnalysis
 		// 		}
 		// 		$D['best'] = $best;
 		// 		return $D;
-		// 	}
+		// 	}*/
+		
 		public function Supertrend($period = 10, $coeff = 3)
 		{
 			// Try to use cached values
@@ -793,12 +779,13 @@ class StockAnalysis
 			$Closes = $this->getData('close');
 			//buffer
 // 			$re = array();
-			foreach($this->_trader_('atr', 
-				array(	$this->getData('high'), 
-						$this->getData('low'), 
-						$this->getData('close'), 
-						$period
-					))
+			foreach(
+				$this->_trader_('atr', array(	
+					$this->getData('high'), 
+					$this->getData('low'), 
+					$this->getData('close'), 
+					$period
+				))
 				as $date => $atr)
 			{
 				static $upband = 0, $downband = 0, $close = 0, $supertrend = 0;
