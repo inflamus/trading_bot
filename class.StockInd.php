@@ -59,6 +59,8 @@ class Stock implements iStock
 				return 'UL.AS'; break;
 			case 'APAM':
 				return 'APAM.AS'; break;
+			case 'PX1':
+				return '^FCHI'; break;
 			default:
 				return $this->Mnemo .'.PA';
 		}		
@@ -85,6 +87,11 @@ class StockInd
 			$this->Lib[$l[0]] = $this->uniform($l[1]);
 			$this->Mnem[$l[0]] = strtoupper(trim($l[2]));
 		}
+		// CAC40 et autres indices
+		$this->Lib['FR0003500008'] = 'cac40';
+		$this->Mnem['FR0003500008'] = 'PX1';
+// 		$this->Lib['DE0008469008'] = 'dax30';
+// 		$this->Mnem['DE0008469008'] = 'DAX';
 	}
 	
 	private function uniform($s)

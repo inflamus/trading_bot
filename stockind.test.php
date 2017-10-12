@@ -10,6 +10,7 @@ require('class.Stock.php');
 require('stock_provider/class.YahooFinance.php');
 require('class.StockData.php');
 require('class.StockAnalysis.php');
+require('class.StockInterpreter.php');
 
 // exit(date('r',1495922400));
 $Sto = new StockQuote(new Stock('orange'), StockProvider::PERIOD_DAILY, StockQuote::PROVIDER_ABCBOURSE);
@@ -29,8 +30,19 @@ $Sto = new StockQuote(new Stock('orange'), StockProvider::PERIOD_DAILY, StockQuo
 // $vn = $Sto->Analysis()->Supertrend();
 // $vn = $Sto->Analysis()->OBV();
 // $vn = $Sto->Analysis()->DMIMinus();
-$vn = $Sto->Analysis()->DMI('+');
+// $vn = $Sto->Analysis()->DMI('+');
 // $vn = $Sto->Analysis()->ROC();
+// $vn = $Sto->Analysis()->MFI();
+// $vn = $Sto->Analysis()->Beta();
+// $vn = $Sto->Analysis()->RSI();
+// $in = $Sto->Interpreter()->CrossDown($vn, 70);
+// $vn = $Sto->Analysis()->MACD();
+// $in = $Sto->Interpreter()->CrossUp($vn[2], 0);
+// $vn = $Sto->Analysis()->MM();
+// $in = $Sto->Interpreter()->Sup($Sto->Close(), $vn);
+// $in = $Sto->Interpreter()->CrossUp($Sto->Close(), $vn);
+$vn = $Sto->Analysis()->Candle();
 
-
-print_r(array_slice($vn, -10, null, true));
+// print $vn;
+print_r(array_slice($vn, -50, null, true));
+// print_r(iterator_to_array($in));

@@ -314,5 +314,11 @@ class StockQuote extends StockCache implements Iterator
 	{
 		return new StockAnalysis($this, $closeval);
 	}
+	
+	/* Interpreter bridge */
+	public function Interpreter($today = false)
+	{
+		return new StockInterpreter($this, $today);
+	}
 }
 

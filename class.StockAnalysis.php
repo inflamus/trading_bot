@@ -244,8 +244,7 @@ class StockAnalysis
 			return compact('pivot','support1','support2','resist1','resist2');
 		}
 		
-		// Returns the percentage of the diff between the short and the long value.
-		public function MM($period=1, $mmtype = TRADER_MA_TYPE_SMA)
+		public function MM($period = 20, $mmtype = TRADER_MA_TYPE_SMA)
 		{
 			return $this->_trader_('ma', array($this->getData('close'), $period, $mmtype));
 		}
@@ -399,6 +398,15 @@ class StockAnalysis
 			return $this->_trader_('rocr100', array($this->getData('close'), $period));
 		}
 		
+		public function MoneyFlowIndex($period = 14)
+		{
+			return $this->_trader_('mfi', array($this->getData('high'), $this->getData('low'), $this->getData('close'), $this->getData('volume'), $period));
+		}
+		public function MFI($period = 14)
+		{
+			return $this->MoneyFlowIndex($period);
+		}
+		
 /* Chaikinn		
 		// 	public function Chaikin($period = 21)
 		// 	{
@@ -446,7 +454,7 @@ class StockAnalysis
 		
 		public function OBV()
 		{
-			return $this->_indexOnDate($this->_trader_('obv', array($this->getData('close'), $this->getData('volume'))));
+			return $this->_trader_('obv', array($this->getData('close'), $this->getData('volume')));
 		}
 		
 		// Returns somekind of weight of volumes during the 5 last days.
@@ -525,6 +533,11 @@ class StockAnalysis
 		
 		public function Candle()
 		{
+			return $this->_trader_('cdlgapsidesidewhite', array(
+				$this->getData('open'),
+				$this->getData('high'),
+				$this->getData('low'),
+				$this->getData('close')));
 			
 			throw new Exception("Testing ".__FUNCTION__."...");
 			$open = array_slice($this->buildData('Open'), -21);
@@ -649,13 +662,17 @@ class StockAnalysis
 				//TODO : Interpret Divergences
 		}
 		
-		public function Beta(Stock $CAC40)
+		public function Beta_(StockQuote $CAC40, $period = 100)
+		{
+			return $this->_trader_('beta', array($this->getData('close'), $CAC40->Close(true), $period));
+		}
+		
+		public function Beta()
 		{
 			// 		var_dump($CAC40);
-			$m = array();
-			foreach($CAC40 as $d)
-				$m[] = $d;
-			return standard_covariance(array_values($this->cache), $m)*100 / variance($m);
+			$CAC40 = new StockQuote(new Stock('cac40'));
+			$CAC = array_values($CAC40->Close(true));
+			return standard_covariance(array_values($this->getData('close')), $CAC) / variance($CAC);
 			
 			// 		$beta = trader_beta($this->cache, $m, count($m)-1);
 			// 		return end($beta)*100;
