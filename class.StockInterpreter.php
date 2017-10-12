@@ -18,6 +18,8 @@ class StockInterpreter
 	// callback : function($date-key, $value from arr, $stock-pointer){ no return, must yield to return values };
 	private function _Test($arr, $trigger, callable $test, $callback = null)
 	{
+		if($this->today)
+			$arr = array_slice($arr, -2, null, true);
 		$prev = null;
 		foreach($arr as $date => $val)
 		{
@@ -41,9 +43,8 @@ class StockInterpreter
 					yield ($callback($date, $val, $this->stock));
 				else
 					yield $date => $val;
-			print "on $date : $val <=> $trig && previous = $prev \n";
+// 			print "on $date : $val <=> $trig && previous = $prev \n";
 			}
-			else;
 			$prev = $val;
 		}
 	}
@@ -85,6 +86,33 @@ class StockInterpreter
 		return $this->_Test($arr, $trigger, function($val, $trig){
 			return $val < $trig;
 		}, $callback);
+	}
+	
+	public function NewHigh($arr = 30, $callback = null)
+	{
+		if(is_int($arr))
+			$arr = $this->stock->Analysis()->NewHigh($arr);
+		if(is_array($arr))
+			return $this->Sup($arr, 0, $callback);
+		else
+			return false;
+	}
+	
+	public function NewLow($arr = 30, $callback = null)
+	{
+		if(is_int($arr))
+			$arr = $this->stock->Analysis()->NewLow($arr);
+		if(is_array($arr))
+			return $this->Sup($arr, 0, $callback);
+		else
+			return false;
+	}
+	
+	public function Gaps($type, $arr = null, $callback = null)
+	{
+		if(is_null($arr))
+			$arr = $this->stock->Analysis()->Gaps();
+		return $type ? $this->Sup($arr, 0, $callback) : $this->Inf($arr, 0, $callback);
 	}
 	
 	public static function fromScript($file)

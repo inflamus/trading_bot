@@ -533,18 +533,6 @@ class StockAnalysis
 		
 		public function Candle()
 		{
-			return $this->_trader_('cdlgapsidesidewhite', array(
-				$this->getData('open'),
-				$this->getData('high'),
-				$this->getData('low'),
-				$this->getData('close')));
-			
-			throw new Exception("Testing ".__FUNCTION__."...");
-			$open = array_slice($this->buildData('Open'), -21);
-			$high = array_slice($this->buildData('High'), -21);
-			$low = array_slice($this->buildData('Low'), -21);
-			$close = array_slice($this->buildData('Close'), -21);
-			
 			$usefulcdl = array(
 				'piercing',
 				'hammer',
@@ -556,12 +544,12 @@ class StockAnalysis
 				'shootingstar',
 				//Tesing
 				// 			'longline', // trop peu précis.
-				'3blackcrows',
-				'counterattack',
-				'mathold',
-				'tasukigap',
-				'gapsidesidewhite',
-				'2crows',
+// 				'3blackcrows',
+// 				'counterattack',
+// 				'mathold',
+// 				'tasukigap',
+// 				'gapsidesidewhite',
+// 				'2crows',
 				// 			'darkcloudcover', // A voir... donne des ordres de vente un peu trop faciles
 				// 			'xsidegap3methods', // too late. too obvious.
 				// 			'hangingman'
@@ -575,14 +563,15 @@ class StockAnalysis
 				 *		'rickshawman', 
 				 *		);
 				 *	$retournementcdl = array(
-				 / */ 			'upsidegap2crows', 
-				 'doji', 
-				 'dojistar', 
-				 'dragonflydoji', 
-				 'morningdojistar', 
-				 'eveningdojistar',
-				 'gravestonedoji',
-				 'longleggeddoji',
+				 / */ 			
+// 				 'upsidegap2crows', 
+// 				 'doji', 
+// 				 'dojistar', 
+// 				 'dragonflydoji', 
+// 				 'morningdojistar', 
+// 				 'eveningdojistar',
+// 				 'gravestonedoji',
+// 				 'longleggeddoji',
 				 // 			'shootingstar',
 				 // 			'morningstar', 
 				 // 			'eveningstar', 
@@ -631,18 +620,85 @@ class StockAnalysis
 				 'inneck',
 				 'onneck',
 				 );
+				
 				 
-				 
-				$re = 0;
+				static $re = array();
+				if(empty($re))
 				foreach($usefulcdl as $func)
 				{
-					$res = end(call_user_func('trader_cdl'.$func, $open, $high, $low, $close));
-					// 			if( $res > 0 ) print $func.' resulted '.$res."\n";
-					// 			if( $res < 0 ) print $func.' resulted '.$res."\n";
-					$re += $res;
+					foreach($this->_trader_('cdl'.$func, array(
+						$this->getData('open'),
+						$this->getData('high'),
+						$this->getData('low'),
+						$this->getData('close'))) as $date => $v)
+						
+						@$re[$date] += $v;
 				}
 				
-				return (int)( $re/100 );
+				return $re;
+		}
+		
+		// returns -100 for a
+		public function Gaps()
+		{
+			static $re = array();
+			if(empty($re))
+			{
+				$i = 0;
+				$hi = $this->getData('high');
+				$p = array();
+				foreach($this->getData('low') as $date => $l)
+				{
+					$h = $hi[$date];
+					if($i++){ 
+						$re[$date] = 0;
+						if($l > $p[0]) // high < low ==> gap à la hausse
+							$re[$date] = 100;
+						if($h < $p[1])
+							$re[$date] = -100;
+					}
+					$p = array($h,$l);
+				}
+			}
+			return $re;
+		}
+		
+		public function NewHigh($period = 30)
+		{
+			static $re = array();
+			if(empty($re))
+			{
+				$hi = $this->getData('high');
+				if(count($hi) < $period+1)	return false;
+				$i = 0;
+				foreach($hi as $date => $h)
+				{
+					$re[$date] = 0;
+					if($i++ < $period) continue;
+					if(max(array_slice($hi, $i-$period, $period)) == $h)
+						$re[$date] = $h;
+				}
+			}
+			return $re;
+		}
+		
+		public function NewLow($period = 30)
+		{
+			static $re = array();
+			if(empty($re))
+			{
+				$lo = $this->getData('low');
+				if(count($lo) < $period+1)	return false;
+				$i = 0;
+				foreach($lo as $date => $l)
+				{
+					$re[$date] = 0;
+					if($i++ < $period) continue;
+					if(min(array_slice($lo, $i-$period, $period)) == $l)
+						$re[$date] = $l;
+				}
+			}
+			return $re;
 		}
 		
 		public function CCI($period = 14) // Commodity Channel Index

@@ -29,8 +29,9 @@ $Sto = new StockQuote(new Stock('orange'), StockProvider::PERIOD_DAILY, StockQuo
 // $vn = $Sto->Analysis()->CCI();
 // $vn = $Sto->Analysis()->Supertrend();
 // $vn = $Sto->Analysis()->OBV();
-// $vn = $Sto->Analysis()->DMIMinus();
 // $vn = $Sto->Analysis()->DMI('+');
+// $vnn = $Sto->Analysis()->DMIMinus();
+// $in = $Sto->Interpreter()->CrossUp($vn, $vnn);
 // $vn = $Sto->Analysis()->ROC();
 // $vn = $Sto->Analysis()->MFI();
 // $vn = $Sto->Analysis()->Beta();
@@ -41,8 +42,9 @@ $Sto = new StockQuote(new Stock('orange'), StockProvider::PERIOD_DAILY, StockQuo
 // $vn = $Sto->Analysis()->MM();
 // $in = $Sto->Interpreter()->Sup($Sto->Close(), $vn);
 // $in = $Sto->Interpreter()->CrossUp($Sto->Close(), $vn);
-$vn = $Sto->Analysis()->Candle();
+$vn = $Sto->Analysis()->Gaps();
+$in = $Sto->Interpreter()->Gaps(0, $vn);
 
 // print $vn;
-print_r(array_slice($vn, -50, null, true));
-// print_r(iterator_to_array($in));
+// print_r(array_slice($vn, -30, null, true));
+print_r(iterator_to_array($in));
