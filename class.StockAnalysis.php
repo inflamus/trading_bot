@@ -663,6 +663,61 @@ class StockAnalysis
 			return $re;
 		}
 		
+		public function Engulfing()
+		{
+			static $re = array();
+			if(empty($re))
+			{
+				$i = 0;
+				$op = $this->getData('open');
+				$p = array();
+				foreach($this->getData('close') as $date => $c)
+				{
+					$o = $op[$date];
+					if($i++){ 
+						$re[$date] = 0;
+						if($p[0] > $p[1] && $o <= $p[1] && $c >= $p[0]) // engolfante à la hausse
+							$re[$date] = 100;
+						if($p[0] < $p[1] && $o >= $p[1] && $c <= $p[0]) // engolfante à la baisse
+							$re[$date] = -100;
+					}
+					$p = array($o,$c);
+				}
+			}
+			return $re;
+		}
+		
+		public function Harami()
+		{
+			static $re = array();
+			if(empty($re))
+			{
+				$i = 0;
+				$op = $this->getData('open');
+				$hi = $this->getData('high');
+				$lo = $this->getData('low');
+				$p = array();
+				foreach($this->getData('close') as $date => $c)
+				{
+					$o = $op[$date];
+					$h = $hi[$date];
+					$l = $lo[$date];
+					if($i++){ 
+						$re[$date] = 0;
+						if($l >= min($p[0], $p[1]) && $h <= max($p[0], $p[1]))
+						{
+							if($p[0] > $p[1] && $o <= $c) // harami à la hausse
+								$re[$date] = 100;
+							if($p[0] < $p[1] && $o >= $c) // harami à la baisse
+								$re[$date] = -100;
+						}
+					}
+					$p = array($o,$c);
+				}
+			}
+			return $re;
+		}
+		
 		public function NewHigh($period = 30)
 		{
 			static $re = array();

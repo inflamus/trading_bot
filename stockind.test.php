@@ -42,8 +42,15 @@ $Sto = new StockQuote(new Stock('orange'), StockProvider::PERIOD_DAILY, StockQuo
 // $vn = $Sto->Analysis()->MM();
 // $in = $Sto->Interpreter()->Sup($Sto->Close(), $vn);
 // $in = $Sto->Interpreter()->CrossUp($Sto->Close(), $vn);
-$vn = $Sto->Analysis()->Gaps();
-$in = $Sto->Interpreter()->Gaps(0, $vn);
+// $vn = $Sto->Analysis()->Gaps();
+// $in = $Sto->Interpreter()->Gaps(false);
+// $in = $Sto->Interpreter()->NewHigh();
+// $in = $Sto->Interpreter()->NewLow();
+// $vn = $Sto->Analysis()->Candle();
+// $vn = $Sto->Analysis()->Engulfing();
+// $in = $Sto->Interpreter()->Engulfing(true);
+$in = $Sto->Interpreter()->Harami(true);
+
 
 // print $vn;
 // print_r(array_slice($vn, -30, null, true));

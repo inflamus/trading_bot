@@ -23,20 +23,21 @@ class StockInterpreter
 		$prev = null;
 		foreach($arr as $date => $val)
 		{
-			if($prev == null)
+			// determine la valeur précédente
+			if(is_null($prev))
 			{
 				$prev = $val;
 				continue;
 			}
+			
+			// détermine la valeur du parametre a tester
 			$trig = null;
-			if(is_array($trigger))
-				if(array_key_exists($date, $trigger))
-					$trig = $trigger[$date];
-				else
-					continue;
+			if(is_array($trigger) && array_key_exists($date, $trigger))
+				$trig = $trigger[$date];
 			else
 				$trig = $trigger;
-			
+				
+			// test de la valeur against le trigger
 			if($test($val, $trig, $prev))
 			{
 				if(!is_null($callback))
@@ -45,6 +46,7 @@ class StockInterpreter
 					yield $date => $val;
 // 			print "on $date : $val <=> $trig && previous = $prev \n";
 			}
+			
 			$prev = $val;
 		}
 	}
@@ -115,9 +117,25 @@ class StockInterpreter
 		return $type ? $this->Sup($arr, 0, $callback) : $this->Inf($arr, 0, $callback);
 	}
 	
-	public static function fromScript($file)
+	public function Engulfing($type, $arr = null, $callback = null)
 	{
-	// TODO : create from script;
+		if(is_null($arr))
+			$arr = $this->stock->Analysis()->Engulfing();
+		return $type ? $this->Sup($arr, 0, $callback) : $this->Inf($arr, 0, $callback);
+	}
+	
+	public function Harami($type, $arr = null, $callback = null)
+	{
+		if(is_null($arr))
+			$arr = $this->stock->Analysis()->Harami();
+		return $type ? $this->Sup($arr, 0, $callback) : $this->Inf($arr, 0, $callback);
+	}
+	
+	public function parse($file)
+	{
+	// TODO : create from script; create class.Strategy.php with Stock, Broker, TOday (true/false), and a Strategy (with or without file script). Parse strategy script and execute.
+	//TODO : static function from strategy : Benchmark, which simulates multiple strategies.
+	
 	}
 
 }
