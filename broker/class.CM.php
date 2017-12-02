@@ -1026,17 +1026,17 @@ class EncryptedCredentials extends CreditMutuel {
     
     public static function create($user, $pass)
     {
-		if(!is_dir($this->CRED()))
-			if(!mkdir($this->CRED()))
+		if(!is_dir(self::CRED()))
+			if(!mkdir(self::CRED()))
 				throw new Exception('Cannot create Credentials directory.');
 		$string = $user.':'.$pass;
 		$file = uniqid();
 		$cred = new self(__FILE__);
-		if(file_put_contents($this->CRED($file.'.ids'), $cred->constructKey(time())->encode($string), LOCK_EX))
+		if(file_put_contents(self::CRED($file.'.ids'), $cred->constructKey(time())->encode($string), LOCK_EX))
 			print "ENCRYPTED CREDENTIALS CREATED. PLEASE NOW CALL CreditMutuel() with \n  new EncryptedCredentials('$file')   as argument.";
 		else
 			print "An error occured.";
-		@chmod($this->CRED($file), 0400);
+		@chmod(self::CRED($file), 0400);
 		return $file;
     }
     
