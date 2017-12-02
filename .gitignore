@@ -1,3 +1,5 @@
 ta_cache
 *.csv
 *.log
+*.ind
+.vscode
