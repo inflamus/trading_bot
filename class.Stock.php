@@ -22,12 +22,12 @@ abstract class StockCache
 	
 	private function _file_ (StockProvider $provider, Stock $stock, $period)
 	{
-		return $this->_dir_($provider).'/'.$stock->ISIN().$period.'.gz';
+		return $this->_dir_($provider) . DIRECTORY_SEPARATOR  . $stock->ISIN() . $period.'.gz';
 	}
 	
 	private function _dir_(StockProvider $provider)
 	{
-		return dirname(__FILE__).'/'.self::CACHE_DIR.'/'.get_class($provider);
+		return dirname(__FILE__) . DIRECTORY_SEPARATOR . self::CACHE_DIR . DIRECTORY_SEPARATOR . get_class($provider);
 	}
 	
 	protected function _isCached(StockProvider $provider, Stock $stock, $period)
@@ -37,7 +37,7 @@ abstract class StockCache
 	
 	protected function _serialize(StockProvider $provider, Stock $stock, $period, &$data)
 	{
-		if(!is_dir($this->_dir_($provider) . '/'))
+		if(!is_dir($this->_dir_($provider) . DIRECTORY_SEPARATOR))
 			if(!mkdir($this->_dir_($provider), 0777, true))
 				throw new Exception('Unable to create the stock cache directory ['.$this->_dir_($provider).']');
 				

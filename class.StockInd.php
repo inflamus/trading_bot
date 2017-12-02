@@ -12,16 +12,16 @@ define('DIRNAME', dirname(__FILE__));
 
 interface iStock
 {
-	public function __construct(/*string*/ $input); // take as input string mnemo, label, or isin directly;
+	public function __construct(string $input); // take as input string mnemo, label, or isin directly;
 	// or throw an exception if $input is not foud.
-	public function ISIN() /*:string*/; // return ISIN;
-	public function Mnemo() /*:string*/; // return mnemo
+	public function ISIN() :string; // return ISIN;
+	public function Mnemo() :string; // return mnemo
 }
 
 class Stock implements iStock
 {
 	public $ISIN, $Mnemo, $Label;
-	public function __construct(/*string*/ $input)
+	public function __construct($input)
 	{
 		$this->ISIN = $input;
 		StockInd::isISIN($this->ISIN);
@@ -31,12 +31,12 @@ class Stock implements iStock
 		$this->Label = StockInd::getInstance()->searchLabel($this->ISIN);
 	}
 	
-	public function ISIN()
+	public function ISIN() : string
 	{
 		return $this->ISIN;
 	}
 	
-	public function Mnemo()
+	public function Mnemo() : string
 	{
 		return $this->Mnemo;
 	}
@@ -71,14 +71,14 @@ class StockInd
 {
 	use UniqueInstance;  //trait for unique instance of a class
 
-	const STOCKS_FILE = DIRNAME.'/EUROLIST.ind'; /* Thanks to ABC Bourse.com */
+	const STOCKS_FILE = DIRNAME.DIRECTORY_SEPARATOR.'EUROLIST.ind'; /* Thanks to ABC Bourse.com */
 	const UNIFORM_REGEX = '/[^a-z0-9]/';
 	const UPDATE_INTERVAL = 3600*24*7; // every weeks
 	public $Lib = array(), $Mnem = array();
 	
 	public function __construct()
 	{
-		if(!is_readable(self::STOCKS_FILE))
+		if(!is_readable(self::STOCKS_FILE) || filesize(self::STOCKS_FILE) < 10)
 			$this->_buildDB();
 		foreach(file(self::STOCKS_FILE) as $v)
 		{
@@ -160,15 +160,26 @@ class StockInd
 	
 	private function _buildDB()
 	{
+		$host = "https://www.abcbourse.com/download/libelles.aspx";
+		$viewstate = "/wEPDwUKMTM4NDUwMzkwNA9kFgJmD2QWAgIED2QWBgIFD2QWAgJTD2QWAmYPFgIeB1Zpc2libGVnZAIJD2QWAmYPFgIfAGdkAgsPZBYCAgEPDxYCHgRUZXh0BSlCYXNjdWxlciBzdXIgbGEgdmVyc2lvbiBjbGFzc2lxdWUgZHUgc2l0ZWRkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYoBRVjdGwwMCRCb2R5QUJDJHhjYWM0MHAFFmN0bDAwJEJvZHlBQkMkeHNiZjEyMHAFFWN0bDAwJEJvZHlBQkMkeGNhY2F0cAUWY3RsMDAkQm9keUFCQyR4Y2FjbjIwcAUYY3RsMDAkQm9keUFCQyR4Y2Fjc21hbGxwBRVjdGwwMCRCb2R5QUJDJHhjYWM2MHAFFmN0bDAwJEJvZHlBQkMkeGNhY2w2MHAFFWN0bDAwJEJvZHlBQkMkeGNhY21zcAUVY3RsMDAkQm9keUFCQyR4YmVsMjBnBRVjdGwwMCRCb2R5QUJDJHhhZXgyNW4FEWN0bDAwJEJvZHlBQkMkZGp1BRJjdGwwMCRCb2R5QUJDJG5hc3UFFGN0bDAwJEJvZHlBQkMkc3A1MDB1BRZjdGwwMCRCb2R5QUJDJGdlcm1hbnlmBRFjdGwwMCRCb2R5QUJDJHVrZQUSY3RsMDAkQm9keUFCQyRiZWxnBRJjdGwwMCRCb2R5QUJDJGRldnAFFGN0bDAwJEJvZHlBQkMkc3BhaW5tBRVjdGwwMCRCb2R5QUJDJGl0YWxpYWkFE2N0bDAwJEJvZHlBQkMkaG9sbG4FFWN0bDAwJEJvZHlBQkMkbGlzYm9hbAUUY3RsMDAkQm9keUFCQyRzd2l0enMFEmN0bDAwJEJvZHlBQkMkdXNhdQUYY3RsMDAkQm9keUFCQyRldXJvbGlzdEFwBRhjdGwwMCRCb2R5QUJDJGV1cm9saXN0QnAFGGN0bDAwJEJvZHlBQkMkZXVyb2xpc3RDcAUZY3RsMDAkQm9keUFCQyRldXJvbGlzdHplcAUaY3RsMDAkQm9keUFCQyRldXJvbGlzdGh6ZXAFFGN0bDAwJEJvZHlBQkMkZXVyb2FwBRRjdGwwMCRCb2R5QUJDJGV1cm9ncAUYY3RsMDAkQm9keUFCQyRpbmRpY2VzbWtwBRljdGwwMCRCb2R5QUJDJGluZGljZXNzZWNwBRNjdGwwMCRCb2R5QUJDJG9ibDJwBRJjdGwwMCRCb2R5QUJDJG9ibHAFF2N0bDAwJEJvZHlBQkMkb3Bjdm0zNjBwBRJjdGwwMCRCb2R5QUJDJHNyZHAFFGN0bDAwJEJvZHlBQkMkc3JkbG9wBRRjdGwwMCRCb2R5QUJDJHRyYWNrcAUWY3RsMDAkQm9keUFCQyR3YXJyYW50cwUVY3RsMDAkQm9keUFCQyRjYlBsYWNl095trWFT9yJFTv4Gub85XAsSjAw=";
+		$eventvalidation = "/wEdACpxB1ntiTbBKNzZY0hkFmJs8hOKHkjEHKgE6Cl+PlWP6CsBz2dyy933VqldEv71pnrWB5fl7SDH6+LCeR6Cj3hBml1ipBDbFFYwrN937W/pOlYevFxpTuQO4S87Jds5qM1RyrZ1RzKjY7kpf1Uy1EsRjq0lzGo3UDCLR8Qzg+ICOaGQP60Muea7Jt2Mvrk5dP50a3x3ndE82QKf/stnRZsbrDvGsRZUo73a6kgCRfaABEjb6VehtduCyrNNbiEE/szy7cIA2+GZ1fAM4FpZyQ0JQYbnRAQISh2SLDGw6kCjm8bengUhKB5UkNIenkLIxtxVNRGPAtf9BhmQxdFVjtqGE3LKYP0CSBKO8s+AkdN+2rYiFYBGCMxIZG/SpWGZsnu/5yZPFqmm9xa2kSkQODR+EjJG69LLH4QzaePL67dWk6Cyv8bmJMXg1Cdo8hAobgnGTQM2+Tp+KxxD/R8sIIWBGD0kjqjVantioGJ6/jSUcfQLfrpgs2Etrj6F6v3VSQdAgE8rXYVdjIwY7T/ko+CqYzvsi3CKdJcOVAFBxMcbknJMAweaO6e3Zs/+P+A8U57/5p/+JANuo229ydF+QfaiGN2Hp1RDmb7ZVM1haQbFqwWhuCUe80dQYaPeR9wAkLEbNhh1C6FM+wNbNJJn6+xObUYPRCihOb3stRT0ZQqmcg4L67/Zb65bIa5c3TZRsKISuxs4fVNVenj9bBwNMtd92XoZ0fgAFx0VYRpgUubx6SaFj1P1ns1k7saP20CtOv40Vh1fIBS7G3r7SNtlzk3C0A/4Rmw2+Xo6xnkHUnscHL5GCzjGbRjxavMDrnvi92ihmau6VuJALuZvH2+XItM49krxVbbQbx+rvmYdNFMYrxrqfXKoG/eBbQYV684ncHUPVwdVJY4QSiDVjHzHrQVhkvZCvQ==";
+		$base = file_get_contents($host);
+		if($base !== false)
+		{
+			if(preg_match('/__VIEWSTATE" value="(.+)"/', $base, $_viewstate))
+				$viewstate = $_viewstate[1];
+			if(preg_match('/__EVENTVALIDATION" value="(.+)"/', $base, $_eventvalidation))
+				$eventvalidation = $_eventvalidation[1];
+		}
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL,            "https://www.abcbourse.com/download/libelles.aspx" );
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1 );
-		curl_setopt($ch, CURLOPT_POST,           1 );
+		curl_setopt($ch, CURLOPT_URL,            $host );
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true );
+		curl_setopt($ch, CURLOPT_POST,           true );
 		curl_setopt($ch, CURLOPT_POSTFIELDS,     http_build_query(
 		array(
-			"__VIEWSTATE" => "/wEPDwULLTEzOTkwMTQxNjkPZBYCZg9kFgICBA9kFgYCBQ9kFgICVQ9kFgICAg8WAh4HVmlzaWJsZWdkAgkPZBYCAgIPFgIfAGdkAgsPZBYCAgEPDxYCHgRUZXh0BSlCYXNjdWxlciBzdXIgbGEgdmVyc2lvbiBjbGFzc2lxdWUgZHUgc2l0ZWRkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYpBRVjdGwwMCRCb2R5QUJDJHhjYWM0MHAFFmN0bDAwJEJvZHlBQkMkeHNiZjEyMHAFFWN0bDAwJEJvZHlBQkMkeGNhY2F0cAUWY3RsMDAkQm9keUFCQyR4Y2FjbjIwcAUYY3RsMDAkQm9keUFCQyR4Y2Fjc21hbGxwBRVjdGwwMCRCb2R5QUJDJHhjYWM2MHAFFmN0bDAwJEJvZHlBQkMkeGNhY2w2MHAFFWN0bDAwJEJvZHlBQkMkeGNhY21zcAUVY3RsMDAkQm9keUFCQyR4YmVsMjBnBRVjdGwwMCRCb2R5QUJDJHhhZXgyNW4FEWN0bDAwJEJvZHlBQkMkZGp1BRJjdGwwMCRCb2R5QUJDJG5hc3UFFGN0bDAwJEJvZHlBQkMkc3A1MDB1BRZjdGwwMCRCb2R5QUJDJGdlcm1hbnlmBRFjdGwwMCRCb2R5QUJDJHVrZQUSY3RsMDAkQm9keUFCQyRiZWxnBRJjdGwwMCRCb2R5QUJDJGRldnAFFGN0bDAwJEJvZHlBQkMkc3BhaW5tBRVjdGwwMCRCb2R5QUJDJGl0YWxpYWkFE2N0bDAwJEJvZHlBQkMkaG9sbG4FFWN0bDAwJEJvZHlBQkMkbGlzYm9hbAUUY3RsMDAkQm9keUFCQyRzd2l0enMFEmN0bDAwJEJvZHlBQkMkdXNhdQUUY3RsMDAkQm9keUFCQyRhbHRlcnAFEWN0bDAwJEJvZHlBQkMkYnNwBRhjdGwwMCRCb2R5QUJDJGV1cm9saXN0QXAFGGN0bDAwJEJvZHlBQkMkZXVyb2xpc3RCcAUYY3RsMDAkQm9keUFCQyRldXJvbGlzdENwBRljdGwwMCRCb2R5QUJDJGV1cm9saXN0emVwBRpjdGwwMCRCb2R5QUJDJGV1cm9saXN0aHplcAUYY3RsMDAkQm9keUFCQyRpbmRpY2VzbWtwBRljdGwwMCRCb2R5QUJDJGluZGljZXNzZWNwBRFjdGwwMCRCb2R5QUJDJG1scAUTY3RsMDAkQm9keUFCQyRvYmwycAUSY3RsMDAkQm9keUFCQyRvYmxwBRdjdGwwMCRCb2R5QUJDJG9wY3ZtMzYwcAUSY3RsMDAkQm9keUFCQyRzcmRwBRRjdGwwMCRCb2R5QUJDJHNyZGxvcAUUY3RsMDAkQm9keUFCQyR0cmFja3AFFmN0bDAwJEJvZHlBQkMkd2FycmFudHMFFWN0bDAwJEJvZHlBQkMkY2JQbGFjZTjRS9F7NcJ2xPMXIxVYqBmk4ALe",
+			"__VIEWSTATE" => $viewstate,
 			"__VIEWSTATEGENERATOR" => '63AB8707',
-			"__EVENTVALIDATION"=> "/wEdACtDxG4CxEY7PLl81wuaGWiK8hOKHkjEHKgE6Cl+PlWP6CsBz2dyy933VqldEv71pnrWB5fl7SDH6+LCeR6Cj3hBml1ipBDbFFYwrN937W/pOlYevFxpTuQO4S87Jds5qM1RyrZ1RzKjY7kpf1Uy1EsRjq0lzGo3UDCLR8Qzg+ICOaGQP60Muea7Jt2Mvrk5dP50a3x3ndE82QKf/stnRZsbrDvGsRZUo73a6kgCRfaABEjb6VehtduCyrNNbiEE/szy7cIA2+GZ1fAM4FpZyQ0JQYbnRAQISh2SLDGw6kCjm8bengUhKB5UkNIenkLIxtxVNRGPAtf9BhmQxdFVjtqGE3LKYP0CSBKO8s+AkdN+2rYiFYBGCMxIZG/SpWGZsnu/5yZPFqmm9xa2kSkQODR+EjJG69LLH4QzaePL67dWk6Cyv8bmJMXg1Cdo8hAobgnGTQM2+Tp+KxxD/R8sIIWBGD0kjqjVantioGJ6/jSUcfQLfrpgs2Etrj6F6v3VSQcsge0bGzF1Ktpc3PHbfeTzvpAhX1WtTIA5FTd0942PykCATytdhV2MjBjtP+Sj4KpjO+yLcIp0lw5UAUHExxuSckwDB5o7p7dmz/4/4DxTnv/mn/4kA26jbb3J0X5B9qIY3YenVEOZvtlUzWFpBsWrbUYPRCihOb3stRT0ZQqmcg4L67/Zb65bIa5c3TZRsKLQBi3yzHLNr8sNaxE4jXoUErsbOH1TVXp4/WwcDTLXfdl6GdH4ABcdFWEaYFLm8ekmhY9T9Z7NZO7Gj9tArTr+NFYdXyAUuxt6+0jbZc5NwtAP+EZsNvl6OsZ5B1J7HBy+Rgs4xm0Y8WrzA6574vdooZmrulbiQC7mbx9vlyLTOPZK8VW20G8fq75mHTRTGK8a6n1yqBv3gW0GFevOJ3B1ddxM4/l1yE0ScTMJOOTe4RdQYzg=",
+			"__EVENTVALIDATION"=> $eventvalidation,
 			'ctl00$BodyABC$alterp' => true, // Alternext
 			'ctl00$BodyABC$eurolistAp' => true, // Eurolist A
 			'ctl00$BodyABC$eurolistBp' => true, // Eurolist B
@@ -176,14 +187,20 @@ class StockInd
 			'ctl00$BodyABC$trackp' => true, // Trackers
 			'ctl00$BodyABC$Button1' => 'Télécharger'
 			)) ); 
+		curl_setopt($ch, CURLOPT_ENCODING, "");
 		curl_setopt($ch, CURLOPT_HTTPHEADER,     array('Content-Type: application/x-www-form-urlencoded')); 
-		file_put_contents(self::STOCKS_FILE, curl_exec($ch));
+		$output = curl_exec($ch);
+		if($output !== false)
+			file_put_contents(self::STOCKS_FILE, $output);
+		else
+			throw new Exception(curl_error($ch));
+		curl_close($ch);
 		return true;
 	}
 	
 	public function __destruct()
 	{
-		if(time() - filemtime(self::STOCKS_FILE) < self::UPDATE_INTERVAL)
+		if(time() - @filemtime(self::STOCKS_FILE) < self::UPDATE_INTERVAL)
 			return;
 		// update file index every month
 		return $this->_buildDB();
